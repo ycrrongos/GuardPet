@@ -6,7 +6,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
-import android.graphics.PixelFormat
 import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.os.Looper
@@ -15,10 +14,8 @@ import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.view.ContextThemeWrapper
-import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
-import android.view.WindowManager
 import android.view.animation.AccelerateInterpolator
 import android.view.animation.DecelerateInterpolator
 import android.view.animation.OvershootInterpolator
@@ -41,6 +38,8 @@ object FlashNoteHud {
 
     fun showList(context: Context) {
         withOverlay(context) { it.show(openComposer = false) }
+        ScheduleHud.show(context)
+        OverlayLayerCoordinator.noteUserOn(OverlayLayerCoordinator.Side.FLASH)
     }
 
     fun startCapture(
@@ -49,11 +48,15 @@ object FlashNoteHud {
         source: String = "typed"
     ) {
         withOverlay(context) { it.show(openComposer = true, prefill = prefill, source = source) }
+        ScheduleHud.show(context)
+        OverlayLayerCoordinator.noteUserOn(OverlayLayerCoordinator.Side.FLASH)
     }
 
     /** Volume chord long-press: open composer and start recording. */
     fun beginVolumeHoldRecord(context: Context) {
         withOverlay(context) { it.beginVolumeHoldRecord() }
+        ScheduleHud.show(context)
+        OverlayLayerCoordinator.noteUserOn(OverlayLayerCoordinator.Side.FLASH)
     }
 
     /** Volume chord release after long-press: stop recording (+ ASR). */
@@ -63,6 +66,27 @@ object FlashNoteHud {
 
     fun close() {
         overlay?.close()
+        ScheduleHud.close()
+    }
+
+    fun raiseWindow() {
+        overlay?.raiseWindow()
+    }
+
+    fun retractToEdge(onEnd: () -> Unit) {
+        overlay?.retractToEdge(onEnd) ?: onEnd()
+    }
+
+    fun expandFromEdge(onEnd: () -> Unit) {
+        overlay?.expandFromEdge(onEnd) ?: onEnd()
+    }
+
+    fun setChromeVisible(visible: Boolean) {
+        overlay?.setChromeVisible(visible)
+    }
+
+    fun noteInteraction() {
+        OverlayLayerCoordinator.noteUserOn(OverlayLayerCoordinator.Side.FLASH)
     }
 
     internal fun closeIf(target: FlashNoteOverlay) {
@@ -86,14 +110,12 @@ object FlashNoteHud {
 
 class FlashNoteOverlay(private val app: Context) {
     private val themed = ContextThemeWrapper(app, R.style.Theme_DesktopPet)
-    private val windowManager = app.getSystemService(Context.WINDOW_SERVICE) as WindowManager
     private val inflater = LayoutInflater.from(themed)
     private val binding = OverlayFlashNotesBinding.inflate(inflater)
     private val recorder = FlashNoteRecorder(app)
     private val handler = Handler(Looper.getMainLooper())
     private val timeFormat = DateTimeFormatter.ofPattern("yyyy年M月d日 HH:mm", Locale.CHINA)
     private var attached = false
-    private var windowParams: WindowManager.LayoutParams? = null
     private var expandedId: Long? = null
     private var composerColor = 0
     private var composerCategory = FlashNoteCategory.OTHER
@@ -189,6 +211,8 @@ class FlashNoteOverlay(private val app: Context) {
         stopDictation()
         FlashNotePlayer.onState = null
         FlashNotePlayer.stop()
+        // 左右同时收起，避免闪记退出完才关日程
+        ScheduleHud.close()
         playExitAnimation {
             dismissImmediate()
             FlashNoteHud.closeIf(this)
@@ -199,6 +223,74 @@ class FlashNoteOverlay(private val app: Context) {
         closing = true
         dismissImmediate()
         FlashNoteHud.closeIf(this)
+        ScheduleHud.close()
+    }
+
+    fun raiseWindow() {
+        if (!attached || closing) return
+        DualOverlayShell.bringSideToFront(OverlayLayerCoordinator.Side.FLASH)
+    }
+
+    fun setChromeVisible(visible: Boolean) {
+        if (!attached) return
+        DualOverlayShell.setPanelVisible(OverlayLayerCoordinator.Side.FLASH, visible)
+    }
+
+    /** 切下层：收到屏幕右缘；结束后仍在屏上但偏出。 */
+    fun retractToEdge(onEnd: () -> Unit) {
+        if (!attached || closing) {
+            onEnd()
+            return
+        }
+        val items = allOverlayItemsTopToBottom()
+        if (items.isEmpty()) {
+            onEnd()
+            return
+        }
+        val outX = slideDistance()
+        val lastIndex = items.lastIndex
+        items.forEachIndexed { index, view ->
+            val delay = (lastIndex - index) * ENTRANCE_STAGGER_MS
+            view.animate().cancel()
+            view.animate()
+                .translationX(outX)
+                .alpha(0f)
+                .setStartDelay(delay)
+                .setDuration(EXIT_DURATION_MS)
+                .setInterpolator(AccelerateInterpolator())
+                .withEndAction {
+                    if (index == 0) onEnd()
+                }
+                .start()
+        }
+    }
+
+    /** 从右缘再展开到当前位置（通常已在下层）。 */
+    fun expandFromEdge(onEnd: () -> Unit) {
+        if (!attached || closing) {
+            onEnd()
+            return
+        }
+        val items = allOverlayItemsTopToBottom()
+        if (items.isEmpty()) {
+            onEnd()
+            return
+        }
+        items.forEachIndexed { index, view ->
+            view.animate().cancel()
+            view.translationX = slideDistance()
+            view.alpha = 0f
+            view.animate()
+                .translationX(0f)
+                .alpha(1f)
+                .setStartDelay(index * ENTRANCE_STAGGER_MS)
+                .setDuration(ENTRANCE_DURATION_MS)
+                .setInterpolator(OvershootInterpolator(1.15f))
+                .withEndAction {
+                    if (index == items.lastIndex) onEnd()
+                }
+                .start()
+        }
     }
 
     private fun dismissImmediate() {
@@ -215,10 +307,9 @@ class FlashNoteOverlay(private val app: Context) {
         if (attached) {
             binding.root.alpha = 0f
             binding.root.visibility = View.GONE
-            runCatching { windowManager.removeView(binding.root) }
+            DualOverlayShell.detachFlash(binding.root)
             attached = false
         }
-        windowParams = null
         needsEntrance = false
         closing = false
         composerAnimating = false
@@ -231,33 +322,41 @@ class FlashNoteOverlay(private val app: Context) {
         closing = false
         binding.root.alpha = 1f
         binding.root.visibility = View.VISIBLE
-        val params = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
-                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-            PixelFormat.TRANSLUCENT
-        ).apply {
-            gravity = Gravity.TOP or Gravity.END
-            x = 0
-            y = (48 * metrics.density).toInt()
-            softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN
+        binding.closeOverlayButton.setOnClickListener {
+            FlashNoteHud.noteInteraction()
+            close()
         }
-        binding.closeOverlayButton.setOnClickListener { close() }
-        binding.closeComposerButton.setOnClickListener { closeComposer() }
-        binding.writePill.setOnClickListener { setComposerVisible(true, animated = true) }
-        binding.composerRecordButton.setOnClickListener { toggleRecording() }
-        binding.composerDictateButton.setOnClickListener { requestMic(PendingMic.DICTATE) }
-        binding.composerSaveButton.setOnClickListener { saveComposer() }
-        binding.composerDateButton.setOnClickListener { pickDate() }
+        binding.closeComposerButton.setOnClickListener {
+            FlashNoteHud.noteInteraction()
+            closeComposer()
+        }
+        binding.writePill.setOnClickListener {
+            FlashNoteHud.noteInteraction()
+            setComposerVisible(true, animated = true)
+        }
+        binding.composerRecordButton.setOnClickListener {
+            FlashNoteHud.noteInteraction()
+            toggleRecording()
+        }
+        binding.composerDictateButton.setOnClickListener {
+            FlashNoteHud.noteInteraction()
+            requestMic(PendingMic.DICTATE)
+        }
+        binding.composerSaveButton.setOnClickListener {
+            FlashNoteHud.noteInteraction()
+            saveComposer()
+        }
+        binding.composerDateButton.setOnClickListener {
+            FlashNoteHud.noteInteraction()
+            pickDate()
+        }
+        binding.root.onAnyTouchDown = {
+            FlashNoteHud.noteInteraction()
+        }
         bindComposerColors()
         bindComposerCategories()
         updateDateLabel()
-        windowManager.addView(binding.root, params)
-        windowParams = params
+        DualOverlayShell.attachFlash(app, binding.root)
         attached = true
         stopObserve = FlashNoteStore.observe {
             handler.post { if (attached && !closing) bindNotes() }
@@ -414,16 +513,8 @@ class FlashNoteOverlay(private val app: Context) {
     }
 
     private fun applyFocus(focusable: Boolean) {
-        val params = windowParams ?: return
         if (!attached) return
-        var flags = WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
-            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
-        if (!focusable) {
-            flags = flags or WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-        }
-        params.flags = flags
-        runCatching { windowManager.updateViewLayout(binding.root, params) }
+        DualOverlayShell.applyFocus(focusable)
     }
 
     private fun bindNotes(animateEntrance: Boolean = false) {
@@ -544,20 +635,24 @@ class FlashNoteOverlay(private val app: Context) {
         )
         card.expandedText.text = preview
         card.colorMark.setOnClickListener {
+            FlashNoteHud.noteInteraction()
             FlashNoteStore.update(note.copy(color = FlashNoteColor.next(note.color)))
         }
         card.collapseButton.setOnClickListener {
+            FlashNoteHud.noteInteraction()
             if (closing) return@setOnClickListener
             expandedId = null
             animateCardCollapse(card)
         }
         card.deleteButton.setOnClickListener {
+            FlashNoteHud.noteInteraction()
             if (FlashNotePlayer.playingId == note.id) FlashNotePlayer.stop()
             FlashNoteStore.delete(note.id)
             if (expandedId == note.id) expandedId = null
         }
         bindExpandedColors(card.expandedColors, note)
         card.collapsedRow.setOnClickListener {
+            FlashNoteHud.noteInteraction()
             if (closing) return@setOnClickListener
             if (expandedId == note.id) return@setOnClickListener
             val previous = expandedId
@@ -669,6 +764,7 @@ class FlashNoteOverlay(private val app: Context) {
         card.playbackIcon.text = icon
         card.playbackLabel.text = label
         val toggle = View.OnClickListener { view ->
+            FlashNoteHud.noteInteraction()
             view.playSoundEffect(android.view.SoundEffectConstants.CLICK)
             val path = note.audioPath
             if (path.isNullOrBlank()) {
@@ -978,16 +1074,65 @@ class FlashNoteOverlay(private val app: Context) {
             Toast.makeText(app, R.string.flash_note_empty, Toast.LENGTH_SHORT).show()
             return
         }
+        // 日程分类：走富日程 AI 管线
+        if (composerCategory == FlashNoteCategory.SCHEDULE) {
+            val noteText = text
+            val date = scheduleDate
+            Toast.makeText(app, R.string.schedule_parsing, Toast.LENGTH_SHORT).show()
+            Thread {
+                val (drafts, warn) = ScheduleLlmClient.parseFromFlashNote(noteText, date)
+                Handler(Looper.getMainLooper()).post {
+                    if (warn != null) {
+                        Toast.makeText(app, warn, Toast.LENGTH_SHORT).show()
+                    }
+                    if (drafts.isEmpty()) {
+                        Toast.makeText(app, R.string.schedule_parse_empty, Toast.LENGTH_SHORT).show()
+                        return@post
+                    }
+                    FlashNoteStore.insert(
+                        FlashNote(
+                            text = noteText,
+                            category = FlashNoteCategory.SCHEDULE,
+                            source = composerSource,
+                            scheduleDate = date.toString(),
+                            color = composerColor,
+                            audioPath = recordedPath
+                        )
+                    )
+                    binding.composerInput.setText("")
+                    recordedPath = null
+                    composerSource = "typed"
+                    setComposerVisible(false, animated = true)
+                    bindNotes()
+                    if (drafts.any { it.needsTime || it.startMinutes == null }) {
+                        ScheduleHud.showFillTimes(app, drafts, noteText, date)
+                    } else {
+                        Thread {
+                            val (n, err) = ScheduleLlmClient.commitDrafts(
+                                drafts, date, noteText
+                            )
+                            Handler(Looper.getMainLooper()).post {
+                                Toast.makeText(
+                                    app,
+                                    err ?: app.getString(R.string.schedule_created_count, n),
+                                    Toast.LENGTH_LONG
+                                ).show()
+                                ScheduleHud.show(app)
+                                ScheduleHud.refresh()
+                                OverlayLayerCoordinator.noteUserOn(OverlayLayerCoordinator.Side.SCHEDULE)
+                            }
+                        }.start()
+                    }
+                }
+            }.start()
+            return
+        }
         FlashNoteStore.insert(
             FlashNote(
                 text = text,
                 category = composerCategory,
                 source = composerSource,
-                scheduleDate = if (composerCategory == FlashNoteCategory.SCHEDULE) {
-                    scheduleDate.toString()
-                } else {
-                    null
-                },
+                scheduleDate = null,
                 color = composerColor,
                 audioPath = recordedPath
             )

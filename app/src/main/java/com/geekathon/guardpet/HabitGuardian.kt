@@ -92,6 +92,10 @@ object HabitGuardian {
             sleepLockActive = false
         }
 
+        // 今日进行中的富日程：优先 allow/block
+        val daySchedEval = evaluateActiveDaySchedule(context, packageName)
+        if (daySchedEval != null) return daySchedEval
+
         val category = categorize(context, packageName)
 
         if (sleepLockActive && inSleepWindow) {
@@ -383,6 +387,12 @@ object HabitGuardian {
 
     fun isWatched(packageName: String): Boolean {
         if (!HabitPolicyStore.agentEnabled) return false
+        val active = runCatching { DayScheduleStore.activeNow() }.getOrNull()
+        if (active != null &&
+            (active.allowPackages.isNotEmpty() || active.blockPackages.isNotEmpty())
+        ) {
+            return true
+        }
         return packageName in HabitPolicyStore.watchedPackages() ||
             AppActiveCatalog.hasCatalog(packageName) ||
             AppActiveCatalog.isAnalyzing(packageName)
@@ -464,6 +474,36 @@ object HabitGuardian {
                 Intent(context, PetService::class.java).setAction(PetService.ACTION_SLEEP_LOCK)
             )
         }
+    }
+
+    /**
+     * 进行中日程：有 allow 列表则只放行列表+紧急；有 block 则拦禁止项。
+     * allow 与 block 同时存在时：先看 block，再看 allow。
+     */
+    private fun evaluateActiveDaySchedule(context: Context, packageName: String): HabitEval? {
+        val active = runCatching { DayScheduleStore.activeNow() }.getOrNull() ?: return null
+        if (packageName in active.blockPackages) {
+            return finishBlock(
+                context,
+                packageName,
+                key = "daysched:${active.id}:block:$packageName",
+                reason = "日程「${active.title}」禁止此应用",
+                sleepLock = false,
+                pressBack = false
+            )
+        }
+        if (active.allowPackages.isNotEmpty() && packageName !in active.allowPackages) {
+            return finishBlock(
+                context,
+                packageName,
+                key = "daysched:${active.id}:allow:$packageName",
+                reason = "日程「${active.title}」仅允许指定应用",
+                sleepLock = false,
+                pressBack = false
+            )
+        }
+        maybeRewardCompliance(context, packageName)
+        return HabitEval.watch()
     }
 
     private fun isAlwaysAllowed(context: Context, packageName: String): Boolean {

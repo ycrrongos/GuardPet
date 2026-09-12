@@ -13,6 +13,7 @@ class GuardInitProvider : ContentProvider() {
     override fun onCreate(): Boolean {
         val appContext = context?.applicationContext ?: return false
         FlashNoteStore.init(appContext)
+        DayScheduleStore.init(appContext)
         HabitPolicyStore.init(appContext)
         HabitRewardTracker.init(appContext)
         AppActiveCatalog.init(appContext)

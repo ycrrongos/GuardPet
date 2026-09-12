@@ -34,9 +34,45 @@ data class HabitLlmResult(
     val raw: String? = null
 )
 
+data class HabitLlmApiProbe(
+    val reachable: Boolean,
+    val error: String? = null
+)
+
 object HabitLlmClient {
     private val dnsCache = ConcurrentHashMap<String, Pair<String, Long>>()
     private const val DNS_TTL_MS = 5 * 60_000L
+
+    /**
+     * Checks the configured OpenAI-compatible endpoint with a short HTTP request.
+     * This deliberately uses `/models` instead of ICMP ping because model providers
+     * commonly block ICMP even when their HTTPS API is healthy.
+     * Call this from a worker thread.
+     */
+    fun probeModelApi(): HabitLlmApiProbe {
+        val base = HabitPolicyStore.llmBaseUrl.trimEnd('/')
+        val key = HabitPolicyStore.llmApiKey
+        if (base.isBlank()) return HabitLlmApiProbe(false, "未配置模型 API 地址")
+        if (key.isBlank()) return HabitLlmApiProbe(false, "未配置 API Key")
+        return runCatching {
+            val connection = openConnection(URL("$base/models")).apply {
+                requestMethod = "GET"
+                connectTimeout = API_PROBE_TIMEOUT_MS
+                readTimeout = API_PROBE_TIMEOUT_MS
+                setRequestProperty("Accept", "application/json")
+                setRequestProperty("Authorization", "Bearer $key")
+            }
+            try {
+                when (val code = connection.responseCode) {
+                    in 200..299 -> HabitLlmApiProbe(true)
+                    401, 403 -> HabitLlmApiProbe(false, "模型 API 鉴权失败（HTTP $code）")
+                    else -> HabitLlmApiProbe(false, "模型 API 探测失败（HTTP $code）")
+                }
+            } finally {
+                connection.disconnect()
+            }
+        }.getOrElse { HabitLlmApiProbe(false, friendlyNetError(it)) }
+    }
 
     fun chatPolicy(systemPrompt: String, userPrompt: String): HabitLlmResult {
         val base = chatRaw(systemPrompt, userPrompt, jsonMode = true)
@@ -141,6 +177,8 @@ object HabitLlmClient {
         }
         return conn
     }
+
+    private const val API_PROBE_TIMEOUT_MS = 3_000
 
     private fun resolveIpv4(host: String): String? {
         val cached = dnsCache[host]
