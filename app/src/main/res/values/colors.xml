@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="page_background">#F5F6F3</color>
+    <color name="text_primary">#23312D</color>
+    <color name="text_secondary">#67756E</color>
+    <color name="brand_primary">#417C69</color>
+    <color name="brand_primary_dark">#264B40</color>
+    <color name="accent_warm">#A07851</color>
+    <color name="panel_divider">#E2E7E1</color>
+    <color name="white">#FFFFFF</color>
+    <color name="surface_soft">#EDF1EB</color>
+    <color name="hero_background">#E7EEE5</color>
+    <color name="track">#E5EBE2</color>
+    <color name="disabled_text">#939F96</color>
+    <color name="disabled_surface">#EAEEE8</color>
+    <color name="danger">#A66159</color>
+    <color name="bubble_fill">#FFF6EE</color>
+    <color name="bubble_stroke">#E6C4A8</color>
+    <color name="bubble_text">#4A3B32</color>
+    <color name="md3_primary">#386A60</color>
+    <color name="md3_on_primary">#FFFFFF</color>
+    <color name="md3_primary_container">#BCECE0</color>
+    <color name="md3_surface">#F7FBF8</color>
+    <color name="md3_surface_container">#EBF3EF</color>
+    <color name="md3_on_surface">#171D1B</color>
+    <color name="md3_on_surface_variant">#3F4946</color>
+    <color name="md3_outline_variant">#BFC9C4</color>
+    <color name="token_word_bg">#FFFFFF</color>
+    <color name="token_punct_bg">#D5DCD8</color>
+    <color name="token_punct_text">#5C6B66</color>
+    <color name="token_punct_selected">#5A7A72</color>
+</resources>

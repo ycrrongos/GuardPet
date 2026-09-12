@@ -1,0 +1,3 @@
+source: https://github.com/aload0/Reef
+version: 4.3.0
+license: MIT (with mandatory attribution; do not use the Reef name or icon)

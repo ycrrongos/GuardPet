@@ -1,0 +1,26 @@
+// 归档自 HabitPolicyStore.defaultVideoSurfaces — 恢复内容判断时贴回 object HabitPolicyStore。
+
+    fun defaultVideoSurfaces(prefix: String): List<SurfaceRule> = listOf(
+        SurfaceRule(
+            id = "${prefix}_entertainment",
+            label = "娱乐向内容",
+            match = SurfaceMatchMode.TITLE_HEURISTIC,
+            patterns = listOf(
+                "搞笑", "整活", "鬼畜", "娱乐", "八卦", "明星", "综艺",
+                "游戏实况", "吃播", "颜值", "舞蹈", "番剧", "直播回放",
+                "电影", "电视剧", "追剧", "爽剧", "漫画"
+            )
+        ),
+        SurfaceRule(
+            id = "${prefix}_study_allow",
+            label = "学习向放行词",
+            match = SurfaceMatchMode.TITLE_HEURISTIC,
+            patterns = listOf(
+                "教程", "课程", "学习", "考研", "高考", "纪录片", "公开课",
+                "编程", "数学", "英语", "论文", "讲座", "新闻", "科普",
+                "知识", "技能", "考试", "四六级", "面试", "职场",
+                "剪辑", "攻略", "教学", "开源", "实用向"
+            ),
+            severity = SurfaceSeverity.WARN
+        )
+    )

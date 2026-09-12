@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <uses-feature
+        android:name="android.hardware.microphone"
+        android:required="false" />
+
+    <!-- Discover 守伴语音模型 pack for createPackageContext / getPackageInfo -->
+    <queries>
+        <package android:name="com.geekathon.guardpet.sensevoice" />
+    </queries>
+
+    <application
+        android:name="dev.pranav.reef.App"
+        android:allowBackup="true"
+        android:icon="@drawable/miku_icon"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.DesktopPet"
+        android:usesCleartextTraffic="true"
+        tools:replace="android:name,android:icon,android:label,android:theme,android:allowBackup">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".PetPanelActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:theme="@style/Theme.DesktopPet.Panel" />
+
+        <activity
+            android:name=".BigBangActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleInstance"
+            android:noHistory="true"
+            android:taskAffinity="${applicationId}.bigbang"
+            android:theme="@style/Theme.DesktopPet.BigBang" />
+
+        <activity
+            android:name=".FlashNoteActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:theme="@style/Theme.DesktopPet.Translucent"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".FlashNotePlayActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleInstance"
+            android:taskAffinity="${applicationId}.flashplay"
+            android:theme="@style/Theme.DesktopPet.GhostPixel" />
+
+        <activity
+            android:name=".MicPermissionActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleInstance"
+            android:noHistory="true"
+            android:taskAffinity="${applicationId}.micperm"
+            android:theme="@style/Theme.DesktopPet.Ghost" />
+
+        <activity
+            android:name=".HabitGuardianActivity"
+            android:exported="true"
+            android:label="@string/habit_guard_title">
+            <intent-filter>
+                <action android:name="com.geekathon.guardpet.action.HABIT_ANALYZE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <provider
+            android:name=".GuardInitProvider"
+            android:authorities="${applicationId}.guard-init"
+            android:exported="false"
+            android:initOrder="100" />
+
+        <service
+            android:name=".PetService"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout"
+            android:foregroundServiceType="specialUse|microphone|mediaPlayback">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Keeps the user-enabled desktop pet visible over other apps" />
+        </service>
+    </application>
+
+</manifest>

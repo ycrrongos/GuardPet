@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:background="@drawable/panel_background"
+    android:orientation="vertical"
+    android:padding="8dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:paddingStart="4dp"
+            android:text="@string/quick_tools"
+            android:textColor="@color/text_primary"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/closeMenuButton"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:contentDescription="@string/close_menu"
+            android:gravity="center"
+            android:text="×"
+            android:textColor="@color/text_primary"
+            android:textSize="20sp" />
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/extractTextButton"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_marginTop="4dp"
+        android:minWidth="0dp"
+        android:text="@string/extract_text"
+        android:textSize="13sp" />
+
+    <Button
+        android:id="@+id/flashNoteButton"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_marginTop="4dp"
+        android:minWidth="0dp"
+        android:text="@string/flash_note_capture"
+        android:textSize="13sp" />
+
+    <Button
+        android:id="@+id/flashNoteListButton"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_marginTop="4dp"
+        android:minWidth="0dp"
+        android:text="@string/flash_note_list"
+        android:textSize="13sp" />
+
+    <Button
+        android:id="@+id/focusButton"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_marginTop="4dp"
+        android:minWidth="0dp"
+        android:text="@string/focus_timer"
+        android:textSize="13sp" />
+
+    <Button
+        android:id="@+id/panelButton"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_marginTop="4dp"
+        android:minWidth="0dp"
+        android:text="@string/control_panel"
+        android:textSize="13sp" />
+</LinearLayout>

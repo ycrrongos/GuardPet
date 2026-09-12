@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/page_background"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-medium"
+            android:text="@string/habit_guard_title"
+            android:textColor="@color/text_primary"
+            android:textSize="24sp" />
+
+        <TextView
+            android:id="@+id/habitSummary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textColor="@color/text_secondary"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/habitMoodHint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textColor="@color/brand_primary"
+            android:textSize="12sp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/card_background"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/habit_guard_enabled"
+                    android:textColor="@color/text_primary"
+                    android:textSize="14sp" />
+
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/habitEnabledSwitch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/habit_test_mode"
+                    android:textColor="@color/text_primary"
+                    android:textSize="14sp" />
+
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/habitTestSwitch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="@string/habit_sleep_window"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:orientation="horizontal">
+
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/sleepStartButton"
+                    style="@style/Widget.GuardPet.Button.secondary"
+                    android:layout_width="0dp"
+                    android:layout_height="44dp"
+                    android:layout_marginEnd="6dp"
+                    android:layout_weight="1"
+                    android:textSize="12sp" />
+
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/wakeButton"
+                    style="@style/Widget.GuardPet.Button.secondary"
+                    android:layout_width="0dp"
+                    android:layout_height="44dp"
+                    android:layout_marginStart="6dp"
+                    android:layout_weight="1"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="@string/habit_work_window"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:orientation="horizontal">
+
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/workStartButton"
+                    style="@style/Widget.GuardPet.Button.secondary"
+                    android:layout_width="0dp"
+                    android:layout_height="44dp"
+                    android:layout_marginEnd="6dp"
+                    android:layout_weight="1"
+                    android:textSize="12sp" />
+
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/workEndButton"
+                    style="@style/Widget.GuardPet.Button.secondary"
+                    android:layout_width="0dp"
+                    android:layout_height="44dp"
+                    android:layout_marginStart="6dp"
+                    android:layout_weight="1"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/card_background"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-medium"
+                android:text="@string/habit_agent_section"
+                android:textColor="@color/text_primary"
+                android:textSize="14sp" />
+
+            <EditText
+                android:id="@+id/llmBaseUrl"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:hint="@string/habit_llm_base_url"
+                android:inputType="textUri"
+                android:textColor="@color/text_primary"
+                android:textSize="13sp" />
+
+            <EditText
+                android:id="@+id/llmApiKey"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:hint="@string/habit_llm_api_key"
+                android:inputType="textPassword"
+                android:textColor="@color/text_primary"
+                android:textSize="13sp" />
+
+            <EditText
+                android:id="@+id/llmModel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:hint="@string/habit_llm_model"
+                android:inputType="text"
+                android:textColor="@color/text_primary"
+                android:textSize="13sp" />
+
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/analyzeButton"
+                style="@style/Widget.GuardPet.Button.primary"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="12dp"
+                android:text="@string/habit_reanalyze" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:orientation="horizontal">
+
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/markEntertainmentButton"
+                style="@style/Widget.GuardPet.Button.secondary"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_marginEnd="6dp"
+                android:layout_weight="1"
+                android:text="@string/habit_mark_entertainment"
+                android:textSize="12sp" />
+
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/markWorkButton"
+                style="@style/Widget.GuardPet.Button.secondary"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="6dp"
+                android:layout_weight="1"
+                android:text="@string/habit_mark_work"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/markPreview"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/card_background"
+            android:padding="12dp"
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:fontFamily="sans-serif-medium"
+            android:text="@string/habit_rules_section"
+            android:textColor="@color/text_primary"
+            android:textSize="14sp" />
+
+        <LinearLayout
+            android:id="@+id/rulesContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="vertical" />
+    </LinearLayout>
+</ScrollView>

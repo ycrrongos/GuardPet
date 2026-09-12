@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/panel_background"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-medium"
+            android:includeFontPadding="false"
+            android:text="@string/todo_title"
+            android:textColor="@color/text_primary"
+            android:textSize="18sp" />
+
+        <TextView
+            android:id="@+id/todoCount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/badge_background"
+            android:includeFontPadding="false"
+            android:paddingStart="9dp"
+            android:paddingTop="4dp"
+            android:paddingEnd="9dp"
+            android:paddingBottom="4dp"
+            android:text="@string/food_number_default"
+            android:textColor="@color/brand_primary"
+            android:textSize="12sp" />
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <androidx.appcompat.widget.AppCompatImageButton
+            android:id="@+id/closePanelButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@android:color/transparent"
+            android:contentDescription="@string/close_panel"
+            android:padding="13dp"
+            android:src="@drawable/ic_close_line"
+            app:backgroundTint="@null" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="10dp"
+        android:includeFontPadding="false"
+        android:text="@string/todo_reward_hint"
+        android:textColor="@color/text_secondary"
+        android:textSize="11sp" />
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <TextView
+            android:id="@+id/todoEmpty"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:lineSpacingExtra="6dp"
+            android:text="@string/todo_empty"
+            android:textColor="@color/text_secondary"
+            android:textSize="13sp" />
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fillViewport="true"
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:id="@+id/todoContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </ScrollView>
+    </FrameLayout>
+
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/addTodoButton"
+        style="@style/Widget.GuardPet.Button.secondary"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="8dp"
+        android:text="@string/add_todo" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/freeWalkSwitch"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:text="@string/free_walk"
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp"
+            app:showText="false"
+            app:switchPadding="8dp"
+            app:thumbTint="@color/white"
+            app:trackTint="@color/switch_track" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/focusButton"
+            style="@style/Widget.GuardPet.Button.ghost"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:layout_marginStart="8dp"
+            android:text="@string/focus_timer"
+            android:textSize="12sp" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/stopPetButton"
+            style="@style/Widget.GuardPet.Button.ghost"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:layout_marginStart="8dp"
+            android:text="@string/pause_short"
+            android:textSize="12sp" />
+    </LinearLayout>
+</LinearLayout>

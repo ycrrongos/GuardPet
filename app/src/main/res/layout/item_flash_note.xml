@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp">
+
+    <View
+        android:id="@+id/noteColorDot"
+        android:layout_width="10dp"
+        android:layout_height="10dp"
+        android:layout_marginEnd="10dp"
+        android:background="@drawable/flash_color_dot" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/noteCategory"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/brand_primary"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/noteText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textColor="@color/text_primary"
+            android:textSize="15sp" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/noteDelete"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:gravity="center"
+        android:text="×"
+        android:textColor="@color/accent_warm"
+        android:textSize="22sp" />
+</LinearLayout>

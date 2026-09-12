@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">守伴语音模型</string>
+    <string name="installed_message">模型已安装，可返回守伴</string>
+</resources>

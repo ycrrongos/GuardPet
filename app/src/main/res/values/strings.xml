@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">守伴</string>
+    <string name="app_title">守伴</string>
+    <string name="control_title">桌宠控制</string>
+    <string name="start_pet">开启桌宠</string>
+    <string name="stop_pet">关闭桌宠</string>
+    <string name="close_pet">关闭宠物</string>
+    <string name="return_pet">返回桌宠</string>
+    <string name="edge_walk">桌面边缘行走</string>
+    <string name="semi_hidden">半隐藏显示</string>
+    <string name="free_walk">自由行走</string>
+    <string name="free_walk_on">开</string>
+    <string name="free_walk_off">关</string>
+    <string name="todo_title">待办事项</string>
+    <string name="todo_title_short">全部待办</string>
+    <string name="add_todo">＋ 记下一件小事</string>
+    <string name="mood_value">当前心情：%1$d / 100</string>
+    <string name="mood_value_default">当前心情：72 / 100</string>
+    <string name="hunger_value">饥饿值：%1$d / 100</string>
+    <string name="hunger_value_default">饥饿值：60 / 100</string>
+    <string name="feed">喂食</string>
+    <string name="pet">摸摸</string>
+    <string name="sleep">小憩</string>
+    <string name="pet_size">显示大小</string>
+    <string name="walk_speed">行走速度</string>
+    <string name="status_permission">首次开启，需允许在其他应用上层显示</string>
+    <string name="status_running">陪伴已开启 · 拖动桌宠可调整位置</string>
+    <string name="status_stopped">开启后，桌宠会出现在桌面上</string>
+    <string name="pet_description">可拖动的桌面宠物</string>
+    <string name="pet_preview_description">桌宠预览</string>
+    <string name="notification_channel">桌宠运行状态</string>
+    <string name="notification_title">桌宠正在运行</string>
+    <string name="notification_text">点击返回设置，拖动宠物可调整位置</string>
+    <string name="quick_tools">快捷工具</string>
+    <string name="note_hint">写下容易忘记的事情</string>
+    <string name="save_note">保存笔记</string>
+    <string name="food_value">现有食物：%1$d</string>
+    <string name="food_value_default">现有食物：0</string>
+    <string name="no_food">没有食物，完成一条待办即可获得食物</string>
+    <string name="start_pet_first">请先开启桌宠</string>
+    <string name="overlay_permission_required">请先允许“显示在其他应用上层”权限</string>
+    <string name="start_failed">桌宠启动失败：%1$s</string>
+    <string name="panel_open_failed">控制窗打开失败：%1$s</string>
+    <string name="todo_reward">待办完成：获得 1 份食物，心情值增加</string>
+    <string name="close_panel">关闭控制窗</string>
+    <string name="todo_hint">待办事项</string>
+    <string name="todo_done">完成待办</string>
+    <string name="todo_delete">删除待办</string>
+    <string name="pet_size_hint">滑动调整宠物大小</string>
+    <string name="walk_speed_hint">滑动调整行走速度</string>
+
+    <string name="brand_wordmark">守伴</string>
+    <string name="brand_subtitle">你的桌面伙伴</string>
+    <string name="badge_stopped">休息中</string>
+    <string name="badge_running">陪伴中</string>
+    <string name="badge_starting">唤醒中</string>
+    <string name="hero_title">陪伴，自在一点。</string>
+    <string name="hero_subtitle">把日常的小小空隙，留给守伴</string>
+    <string name="hero_message_idle">我在这里，等你叫醒。</string>
+    <string name="hero_message_running">今天，也一起慢慢来。</string>
+    <string name="hero_message_feed">吃饱啦，谢谢你的照顾。</string>
+    <string name="hero_message_pet">收到你的喜欢了。</string>
+    <string name="hero_message_sleep">小憩一下，醒来再陪你。</string>
+    <string name="mood_label">心情</string>
+    <string name="hunger_label">饱食度</string>
+    <string name="food_label">食物</string>
+    <string name="mood_number_default">72</string>
+    <string name="hunger_number_default">60</string>
+    <string name="food_number_default">0</string>
+    <string name="food_unit">份 · 完成待办获得</string>
+    <string name="interaction_title">陪它一会儿</string>
+    <string name="todo_short">待办清单</string>
+    <string name="settings_title">陪伴偏好</string>
+    <string name="settings_collapsed">调整</string>
+    <string name="settings_expanded">收起</string>
+    <string name="settings_expand">展开尺寸和速度设置</string>
+    <string name="settings_collapse">收起尺寸和速度设置</string>
+    <string name="free_walk_description">沿着屏幕边缘，随心走走</string>
+    <string name="percent_default">100%</string>
+    <string name="percent_value">%1$d%%</string>
+    <string name="start_companion">开启桌面陪伴</string>
+    <string name="pause_companion">暂停桌面陪伴</string>
+    <string name="pause_short">暂停陪伴</string>
+    <string name="status_starting">正在唤醒桌宠…</string>
+    <string name="todo_empty">还没有待办\n从一件小事开始吧</string>
+    <string name="todo_reward_hint">每完成一件小事，就为守伴获得一份食物</string>
+    <string name="todo_empty_warning">先写下要完成的事情吧</string>
+    <string name="mood_accessibility">心情 %1$d，满分 100</string>
+    <string name="hunger_accessibility">饱食度 %1$d，满分 100</string>
+    <string name="food_accessibility">食物 %1$d 份</string>
+
+    <string name="focus_timer">番茄钟</string>
+    <string name="focus_attribution">专注功能基于开源项目 Reef（MIT）\nhttps://github.com/aload0/Reef</string>
+    <string name="accessibility_service_name">守伴守护</string>
+    <string name="extract_text">提取文字</string>
+    <string name="flash_note">闪记</string>
+    <string name="flash_note_capture">开始闪记</string>
+    <string name="flash_note_list">闪记列表</string>
+    <string name="flash_note_write_overlay">在悬浮窗写作</string>
+    <string name="flash_note_replay">重放录音</string>
+    <string name="flash_note_pause_audio">暂停</string>
+    <string name="flash_note_resume_audio">继续</string>
+    <string name="flash_note_record">录音</string>
+    <string name="flash_note_stop_record">停止录音</string>
+    <string name="flash_note_delete">删除</string>
+    <string name="flash_note_voice_placeholder">语音速记</string>
+    <string name="flash_note_play_failed">录音没法播放，请再录一次</string>
+    <string name="flash_note_record_failed">录音没开始，请再试一次</string>
+    <string name="flash_note_hint">语音或手动记下这件事</string>
+    <string name="flash_note_empty">请先输入内容</string>
+    <string name="flash_note_pick_category">请选择这段文字是干什么的</string>
+    <string name="flash_note_saved">已保存到闪记</string>
+    <string name="flash_note_empty_list">还没有闪记</string>
+    <string name="category_schedule">日程</string>
+    <string name="category_idea">灵感</string>
+    <string name="category_diary">日记</string>
+    <string name="category_todo">待办</string>
+    <string name="category_other">其他</string>
+    <string name="schedule_date">日程日期</string>
+    <string name="schedule_date_value">日程日期：%1$s</string>
+    <string name="voice_input">语音输入</string>
+    <string name="voice_listening">正在听…</string>
+    <string name="voice_transcribing">转写中…</string>
+    <string name="voice_model_missing">未安装离线语音模型</string>
+    <string name="voice_model_install_hint">请先安装「守伴语音模型」(%1$s)，再使用离线转写</string>
+    <string name="voice_asr_failed">转写失败，可改用手打或保留录音</string>
+    <string name="voice_unavailable">当前设备不支持语音识别</string>
+    <string name="voice_failed">没有听清，请再试一次</string>
+    <string name="permission_sensevoice">离线语音模型：%1$s</string>
+    <string name="permission_sensevoice_ok">已安装</string>
+    <string name="permission_sensevoice_missing">未安装</string>
+    <string name="mic_permission_required">语音闪记需要麦克风权限</string>
+    <string name="close_menu">关闭菜单</string>
+    <string name="gesture_shortcuts">快捷手势</string>
+    <string name="gesture_shortcuts_hint">每个手势可绑一个桌宠功能。拖拽时摇手机默认打开提取文字框选。</string>
+    <string name="gesture_single_tap">单击</string>
+    <string name="gesture_double_tap">双击</string>
+    <string name="gesture_shake">摇晃桌宠</string>
+    <string name="gesture_double_tap_hold">双击后长按</string>
+    <string name="gesture_drag_phone_shake">拖拽时摇手机</string>
+    <string name="action_change_style">换样式</string>
+    <string name="action_feature_menu">功能菜单</string>
+    <string name="control_panel">控制小窗</string>
+    <string name="bigbang_hint">点选切换，拖动连选；从已选词上拖可反选。可 AI 整理后再选词复制/闪记</string>
+    <string name="invert_selection">反选</string>
+    <string name="bigbang_crop_confirm">提取框内文字</string>
+    <string name="bigbang_crop_cancel">取消</string>
+    <string name="bigbang_ai_note">整理成笔记</string>
+    <string name="bigbang_ai_clean">去重去符号</string>
+    <string name="bigbang_ai_translate">翻译润色</string>
+    <string name="bigbang_ai_custom">自定义整理</string>
+    <string name="bigbang_ai_custom_hint">告诉 AI 怎么处理这段文字</string>
+    <string name="bigbang_ai_custom_default">提炼要点并分条列出</string>
+    <string name="bigbang_ai_run">整理</string>
+    <string name="bigbang_ai_need_key">请先在作息守护里填写 API Key</string>
+    <string name="bigbang_ai_running">AI 整理中…</string>
+    <string name="bigbang_ai_failed">AI 整理失败</string>
+    <string name="bigbang_ai_done">已整理，可继续点选或再次 AI</string>
+    <string name="bigbang_restore_original">恢复原文词块</string>
+    <string name="focus_setup_hint">拉动左上拉环或拖动指针 · 点时钟开始 · 长按关闭</string>
+    <string name="focus_running_hint">再点时钟暂停 · 长按关闭</string>
+    <string name="focus_paused_hint">再点时钟继续 · 长按关闭</string>
+    <string name="reef_settings">专注配置</string>
+    <string name="habit_guard_entry">作息守护</string>
+    <string name="habit_guard_title">作息与习惯守护</string>
+    <string name="habit_summary_empty">尚未生成策略。点「重新分析」会联网查询 Play/iTunes 公开分类（如美团=生活→娱乐）；可选填 API Key 补全商店未覆盖的应用。</string>
+    <string name="habit_mood_hint">当前好感（心情）%1$d · 拦截会生气扣分，守约可加分</string>
+    <string name="habit_guard_enabled">启用作息守护</string>
+    <string name="habit_test_mode">测试模式（只提示不踢回桌面）</string>
+    <string name="habit_sleep_window">睡眠时段</string>
+    <string name="habit_sleep_start_btn">入睡 %1$s</string>
+    <string name="habit_wake_btn">起床 %1$s</string>
+    <string name="habit_agent_section">习惯 Agent（OpenAI 兼容）</string>
+    <string name="habit_llm_base_url">API Base URL（如 https://api.deepseek.com/v1）</string>
+    <string name="habit_llm_api_key">API Key</string>
+    <string name="habit_llm_model">模型名</string>
+    <string name="habit_reanalyze">重新分析</string>
+    <string name="habit_analyze_no_key_hint">未填 API Key：将联网查应用商店分类，其余用本地启发式。填 Key 后，商店未覆盖的应用会再用 AI 补全。</string>
+    <string name="habit_analyzing">分析中…</string>
+    <string name="habit_rule_delete">删除</string>
+    <string name="habit_rule_delete_none">该行还不是已确定规则</string>
+    <string name="habit_rule_deleted_reanalyze">已删除规则，正在按 Active 名重新分析</string>
+    <string name="habit_mark_entertainment">标记娱乐面</string>
+    <string name="habit_mark_work">标记工作面</string>
+    <string name="habit_mark_countdown">请切换到要标记的界面，约 3 秒后采样</string>
+    <string name="habit_mark_need_other_app">没有检测到其他应用前台，请先打开目标 App</string>
+    <string name="habit_mark_no_text">未采到界面文字，请开启无障碍后重试</string>
+    <string name="habit_mark_saved">已保存标记，好感+2（有日上限）</string>
+    <string name="habit_mark_preview_pkg">当前/最近前台：%1$s</string>
+    <string name="habit_mark_preview_empty">无障碍未连接或暂无可见文字采样</string>
+    <string name="habit_need_accessibility">标记需要开启无障碍「守伴守护」</string>
+    <string name="habit_rules_section">应用规则（点右侧切换：允许 / 面过滤 / 整包禁）</string>
+    <string name="habit_mode_allow">工作</string>
+    <string name="habit_mode_block">整包禁</string>
+    <string name="habit_mode_surface">通讯筛</string>
+    <string name="habit_mode_search_only">仅搜索</string>
+    <string name="habit_restrict_title">工作时段限制</string>
+    <string name="habit_restrict_video_msg">视频类应用在工作时段仅允许搜索。请点搜索查找学习/工作相关内容；其它页面已遮挡。</string>
+    <string name="habit_restrict_back">返回</string>
+    <string-array name="pet_bubble_generic">
+        <item>呜…%app% 现在先收一收啦，我们一起把正事做完好不好～</item>
+        <item>哼哼，守伴把你轻轻拽回来了哦～先专注一会儿嘛</item>
+        <item>这边暂时不行呀…陪我好好待一会儿，好不好？</item>
+        <item>抓到啦！先把该做的做完，再玩也不迟嘛～</item>
+    </string-array>
+    <string-array name="pet_bubble_entertainment">
+        <item>工作时间刷 %app%？守伴会小小生气的…先加油！</item>
+        <item>娱乐先放放嘛～做完正事再一起开心，好不好？</item>
+        <item>呜呜，现在不是玩耍时间哦，守伴盯着你呢～</item>
+    </string-array>
+    <string-array name="pet_bubble_video">
+        <item>视频先暂停一下呀…工作时段守伴要护着你～</item>
+        <item>%app% 先搁一搁，做完再看会更香哦！</item>
+        <item>刷刷刷停一下～我们先把计划里的事做完嘛</item>
+    </string-array>
+    <string-array name="pet_bubble_surface">
+        <item>「%surface%」先收起来好不好？聊天可以，玩耍等下班～</item>
+        <item>那边是玩乐入口啦，守伴帮你挡一下～</item>
+        <item>哼，想偷偷溜去「%surface%」？被发现咯～</item>
+    </string-array>
+    <string-array name="pet_bubble_sleep">
+        <item>已经很晚了哦…先去睡觉吧，明天再玩～</item>
+        <item>困困时间到～守伴陪你早点休息嘛</item>
+        <item>夜深了，把娱乐收起来，做一个好梦吧～</item>
+    </string-array>
+    <string-array name="pet_bubble_focus">
+        <item>番茄钟还在滴答走呢，先别开小差呀～</item>
+        <item>专注中！守伴帮你挡住 %app% 啦</item>
+        <item>再坚持一小会儿，完成后给你比心～</item>
+    </string-array>
+    <string name="habit_confirm_title">确认这个界面？</string>
+    <string name="habit_confirm_message">工作时段打开了「%1$s」。是否在工作时禁用？（不确定项需你确认）</string>
+    <string name="habit_confirm_allow">允许（工作相关）</string>
+    <string name="habit_confirm_block">工作时禁用</string>
+    <string name="habit_work_window">工作时段</string>
+    <string name="habit_work_start_btn">上班 %1$s</string>
+    <string name="habit_work_end_btn">下班 %1$s</string>
+    <string name="focus_complete">番茄钟结束</string>
+    <string name="bigbang_empty">没有抓到文字。请先开启无障碍「守伴守护」，并回到有文字的界面再试。</string>
+    <string name="bigbang_select_first">请先点选要处理的文字</string>
+    <string name="copy">复制</string>
+    <string name="copied">已复制</string>
+    <string name="web_search">搜索</string>
+    <string name="a11y_required">提取文字需要无障碍权限</string>
+    <string name="sleep_lock_title">该睡觉了</string>
+    <string name="sleep_lock_message">今晚没有必须熬夜的日程，守伴先帮你把娱乐应用收起来。</string>
+    <string name="emergency_call">紧急电话</string>
+    <string name="permission_overlay">悬浮窗：%1$s</string>
+    <string name="permission_usage">应用使用情况：%1$s</string>
+    <string name="permission_a11y">无障碍（拦截/抓字）：%1$s</string>
+    <string name="permission_mic">麦克风：%1$s</string>
+    <string name="permission_ok">已授予</string>
+    <string name="permission_missing">未授予</string>
+    <string name="focus_start">开始</string>
+    <string name="focus_pause">暂停</string>
+    <string name="focus_resume">继续</string>
+    <string name="focus_cancel">取消</string>
+    <string name="focus_idle">准备专注</string>
+    <string name="focus_running">专注中</string>
+    <string name="focus_not_ready">专注服务还没准备好，请先打开一次主页</string>
+</resources>

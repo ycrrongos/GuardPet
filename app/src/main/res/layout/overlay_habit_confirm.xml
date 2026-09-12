@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="16dp"
+    android:background="@drawable/card_background"
+    android:elevation="8dp"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/habitConfirmTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fontFamily="sans-serif-medium"
+        android:textColor="@color/text_primary"
+        android:textSize="15sp" />
+
+    <TextView
+        android:id="@+id/habitConfirmMessage"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:textColor="@color/text_secondary"
+        android:textSize="13sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:orientation="horizontal">
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/habitConfirmAllow"
+            style="@style/Widget.GuardPet.Button.secondary"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_marginEnd="6dp"
+            android:layout_weight="1"
+            android:text="@string/habit_confirm_allow"
+            android:textSize="12sp" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/habitConfirmBlock"
+            style="@style/Widget.GuardPet.Button.primary"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1"
+            android:text="@string/habit_confirm_block"
+            android:textSize="12sp" />
+    </LinearLayout>
+</LinearLayout>

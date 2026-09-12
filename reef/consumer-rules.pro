@@ -1,0 +1,2 @@
+-keep class dev.pranav.reef.** { *; }
+-keep class dev.pranav.appintro.** { *; }

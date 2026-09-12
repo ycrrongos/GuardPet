@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <include
+        domain="sharedpref"
+        path="." />
+
+    <include
+        domain="device_sharedpref"
+        path="." />
+
+    <include
+        domain="file"
+        path="focus_sessions.json" />
+</full-backup-content>

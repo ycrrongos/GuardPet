@@ -1,0 +1,465 @@
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation" tools:locale="en">
+    <string name="app_name" translatable="false">Reef</string>
+    <string name="accessibility_service_name">守伴守护</string>
+    <string name="app_description">Reef is an open source productivity app designed to help you reduce your screen time and improve your productivity.</string>
+    <string name="accessibility_service">Accessibility Service</string>
+    <string name="accessibility_service_description">We use accessibility to block distracting apps and websites, pull you back during focus, read on-screen text when you extract words, and open flash notes when you press volume up and down together.</string>
+    <string name="accessibility_service_not_running">Reef service isn’t running</string>
+    <string name="accessibility_service_not_running_description">Android shows Reef as enabled, but the service is not connected. Turn Reef off and on again in Accessibility settings.</string>
+    <string name="accessibility_service_disabled_title">Reef Accessibility is disabled</string>
+    <string name="open_accessibility_settings">Open Accessibility settings</string>
+    <string name="accessibility_service_app_limit">We use accessibility service to enforce per-app screen time limits.</string>
+    <string name="agree">Agree</string>
+    <string name="time_remaining">Time Remaining: %1$s</string>
+    <string name="focus_mode">Focus Mode</string>
+    <string name="app_usage">App Usage</string>
+    <string name="app_usage_desc">Track your screen time</string>
+    <string name="usage_access">Usage Access</string>
+    <string name="usage_access_description">We use usage access to track your app usage, no data is shared or collected.</string>
+    <string name="app_usage_statistics">App Usage Statistics</string>
+    <string name="app_usage_statistics_description">We use app usage statistics permission to help control screen time. No data leaves your device.</string>
+    <string name="notification_permission">Notification Permission</string>
+    <string name="notification_permission_description">Please grant the notification permission to continue.</string>
+    <string name="battery_optimization_exception">Battery Optimization Exception</string>
+    <string name="battery_optimization_exception_description">Please grant the battery optimization exceptions to continue.</string>
+    <string name="exact_alarm_permission">Schedule Exact Alarms</string>
+    <string name="exact_alarm_permission_description">Allow Reef to schedule exact alarms for routines. This ensures your app blocking routines start and stop at the exact times you set.</string>
+    <string name="do_not_disturb_permission">Do Not Disturb Permission</string>
+    <string name="do_not_disturb_permission_description">Allow Reef to enable Do Not Disturb during focus sessions to minimize distractions. This can help you stay focused by silencing notifications while you work.</string>
+
+    <string name="whitelist_apps">Whitelist apps</string>
+    <string name="whitelist_apps_desc">Select apps to exclude from focus mode</string>
+    <plurals name="whitelisted_apps">
+        <item quantity="one">%1$s app allowed</item>
+        <item quantity="other">%1$s apps allowed</item>
+    </plurals>
+
+
+    <string name="set_limit">Set Limit</string>
+    <string name="remove_limit">Remove Limit</string>
+    <string name="daily_usage_limit">Daily Usage Limit</string>
+    <string name="app_icon">App Icon</string>
+    <string name="avg_daily">Avg. Daily</string>
+    <string name="peak_usage">Peak Usage</string>
+    <string name="weekly_overview">Weekly</string>
+
+    <string name="routines">Routines</string>
+    <string name="routines_desc">Schedule focus sessions</string>
+
+    <string name="no_routines">No routines</string>
+    <string name="routine_icon">Routine icon</string>
+    <string name="active_status">Active</string>
+    <string name="routine_name">Routine name</string>
+    <string name="schedule">Schedule</string>
+    <string name="daily">Daily</string>
+    <string name="weekly">Weekly</string>
+    <string name="manual">Manual</string>
+    <string name="start_time">Start time:</string>
+    <string name="end_time">End time:</string>
+    <string name="select_days">Select days:</string>
+    <string name="monday">Monday</string>
+    <string name="tuesday">Tuesday</string>
+    <string name="wednesday">Wednesday</string>
+    <string name="thursday">Thursday</string>
+    <string name="friday">Friday</string>
+    <string name="saturday">Saturday</string>
+    <string name="sunday">Sunday</string>
+    <string name="app_limits">App Limits</string>
+    <string name="add_app">Add App</string>
+    <string name="no_app_limits_desc">No app limits added yet\nTap \'Add App\' to set limits for specific apps</string>
+    <string name="save_routine">Save Routine</string>
+    <string name="block_entirely">Block entirely</string>
+    <string name="limit_per_session">Limit: %1$s per session</string>
+    <string name="app_will_be_fully_blocked">App will be fully blocked during routine</string>
+    <string name="delete_routine">Delete Routine</string>
+    <string name="routine_card_title">Automate Your Digital Wellness</string>
+    <string name="routine_card_desc">Create smart routines to automatically manage app limits at specific times and days</string>
+    <string name="no_routines_yet">No routines yet</string>
+    <string name="create_routine_text">Create your first routine to automate app limits based on your schedule</string>
+    <string name="create_routine">Create Routine</string>
+    <string name="about">About</string>
+    <string name="back">Back</string>
+    <string name="next">Next</string>
+    <string name="get_started">Get Started</string>
+    <string name="manage_focus">Manage Your Focus</string>
+    <string name="settings">Settings</string>
+
+    <string name="join_community">Join the Community</string>
+    <string name="join_community_desc">Join our Discord community to connect with other users, share feedback, and stay updated on the latest news and features.</string>
+    <string name="join_discord">Join Discord</string>
+    <string name="maybe_later">Maybe Later</string>
+    <string name="support_development">Support Development</string>
+    <string name="support_development_desc">If you enjoy using Reef, consider supporting its development. Your contributions help us keep the app free and open source.</string>
+    <string name="any_amount_helps">Your support of any amount helps keep this project alive and improving.</string>
+
+    <!-- Settings strings -->
+    <string name="timer_section">Timer</string>
+    <string name="enable_dnd">Enable Do Not Disturb in focus mode</string>
+    <string name="dnd_description">Silence notifications during focus</string>
+    <string name="pomodoro">Pomodoro</string>
+    <string name="pomodoro_subtitle">Configure focus sessions and breaks</string>
+    <string name="app_blocking">App Blocking</string>
+    <string name="app_blocking_subtitle">Configure blocked apps in main screen</string>
+    <string name="about_subtitle">App info and credits</string>
+    <string name="pomodoro_settings_title">Pomodoro Settings</string>
+    <string name="pomodoro_settings">Pomodoro Settings</string>
+    <string name="durations_section">Durations</string>
+    <string name="durations">Durations</string>
+    <string name="focus_duration">Focus Duration</string>
+    <string name="short_break">Short Break</string>
+    <string name="short_break_duration">Short Break Duration</string>
+    <string name="long_break">Long Break</string>
+    <string name="long_break_duration">Long Break Duration</string>
+    <string name="cycles_before_long_break">Cycles Before Long Break</string>
+    <string name="min_suffix">min</string>
+    <string name="cycles_suffix">cycles</string>
+    <string name="notifications_section">Notifications</string>
+    <string name="sound">Sound</string>
+    <string name="sound_description">Play sound on phase transitions</string>
+    <string name="choose_sound">Choose Sound</string>
+    <string name="choose_sound_description">Select notification ringtone</string>
+    <string name="vibration">Vibration</string>
+    <string name="vibration_description">Vibrate on phase transitions</string>
+    <string name="select_transition_sound">Select Transition Sound</string>
+    <string name="automation">Automation</string>
+    <string name="auto_start_breaks">Auto-start Breaks</string>
+    <string name="auto_start_breaks_description">Automatically start break when focus ends</string>
+    <string name="auto_start_focus">Auto-start Focus</string>
+    <string name="auto_start_focus_description">Automatically start focus when break ends</string>
+    <string name="transition_sound">Transition Sound</string>
+    <string name="transition_sound_description">Play sound between phases</string>
+    <string name="transition_vibration">Transition Vibration</string>
+    <string name="transition_vibration_description">Vibrate on phase transitions</string>
+    <string name="select_sound">Select Sound</string>
+    <string name="select_sound_description">Choose a notification sound</string>
+    <string name="app_language">App Language</string>
+    <string name="app_language_description">Select the language for the app interface</string>
+
+    <!-- Notification Settings strings -->
+    <string name="notifications">Notifications</string>
+    <string name="notifications_subtitle">Configure alerts and reminders</string>
+    <string name="notifications_settings_title">Notification Settings</string>
+    <string name="focus_reminders">Focus Reminders</string>
+    <string name="focus_reminders_description">Get reminded to start focus sessions</string>
+    <string name="break_alerts">Break Alerts</string>
+    <string name="break_alerts_description">Alert when it\'s time to take a break</string>
+    <string name="daily_summary">Daily Summary</string>
+    <string name="daily_summary_description">Receive daily screen time reports at 9 PM</string>
+    <string name="daily_summary_title">Daily Screen Time</string>
+    <string name="daily_summary_message">You spent %1$s on your phone today</string>
+    <string name="limit_warnings">Limit Warnings</string>
+    <string name="limit_warnings_description">Warn when approaching app time limits</string>
+    <string name="prominent_focus_notification">Prominent Focus Notification</string>
+    <string name="prominent_focus_notification_description">Show the focus timer prominently. Android still requires a basic notification while focus mode is running.</string>
+    <string name="focus_ends_at">Focus will end at %1$s</string>
+    <string name="general_section">General</string>
+
+    <string name="disabled">Disabled</string>
+    <string name="enabled">Enabled</string>
+    <string name="manage_mindful_launch">Manage Mindful Launch</string>
+    <plurals name="mindful_apps_count">
+        <item quantity="one">%1$d app protected</item>
+        <item quantity="other">%1$d apps protected</item>
+    </plurals>
+
+    <!-- Routine Activity strings -->
+    <string name="edit_routine">Edit Routine</string>
+    <string name="delete_routine_confirmation">Are you sure you want to delete \'%1$s\'? This action cannot be undone.</string>
+    <string name="delete">Delete</string>
+    <string name="cancel">Cancel</string>
+    <string name="reset">Reset</string>
+    <string name="remove_app_limit">Remove app limit</string>
+    <string name="ok">OK</string>
+    <string name="select_app">Select App</string>
+    <string name="search_apps">Search apps</string>
+    <string name="no_apps_found">No apps found</string>
+    <string name="no_apps_match">No apps match your search</string>
+    <string name="set_limit_for">Set limit for %1$s</string>
+    <string name="decrease_by_one_minute">Decrease limit by one minute</string>
+    <string name="increase_by_one_minute">Increase limit by one minute</string>
+    <string name="minus_15m">−15m</string>
+    <string name="minus_5m">−5m</string>
+    <string name="plus_5m">+5m</string>
+    <string name="plus_15m">+15m</string>
+
+    <plurals name="minutes_label">
+        <item quantity="one">%d minute</item>
+        <item quantity="other">%d minutes</item>
+    </plurals>
+
+    <plurals name="hours_label">
+        <item quantity="one">%1$d hour</item>
+        <item quantity="other">%1$d hours</item>
+    </plurals>
+
+    <string name="enter_routine_name_error">Please enter a routine name</string>
+
+    <string name="add_group">Add Group</string>
+    <string name="create_group">Create Group</string>
+    <string name="group_name">Group name</string>
+    <string name="group_type">Group type</string>
+    <string name="shared_limit">Shared Limit</string>
+    <string name="individual_limits">Individual Limits</string>
+    <string name="shared_limit_desc">All apps share a total time budget. When cumulative usage exceeds the limit, all apps are blocked.</string>
+    <string name="individual_limit_desc">Each app has its own preset time limit within the group.</string>
+    <string name="group_total_limit">Total time limit</string>
+    <string name="select_apps_label">Select Apps</string>
+    <string name="set_limits_label">Set Limits</string>
+    <string name="app_groups">App Groups</string>
+    <string name="no_app_groups_desc">No groups added yet\nTap \'Add Group\' to create a group with shared or individual limits</string>
+    <string name="remove_group">Remove group</string>
+    <string name="edit_group">Edit group</string>
+    <string name="shared_type_label">Shared</string>
+    <string name="individual_type_label">Individual</string>
+    <string name="shared_limit_suffix"> · %1$s shared</string>
+    <string name="individual_limits_suffix"> · individual limits</string>
+
+    <plurals name="apps_selected_count">
+        <item quantity="one">%d app selected</item>
+        <item quantity="other">%d apps selected</item>
+    </plurals>
+    <plurals name="groups_count">
+        <item quantity="one">%d group</item>
+        <item quantity="other">%d groups</item>
+    </plurals>
+    <plurals name="apps_count">
+        <item quantity="one">%d app</item>
+        <item quantity="other">%d apps</item>
+    </plurals>
+
+    <!-- Routines Activity strings -->
+    <string name="activate_routine">Activate Routine</string>
+    <string name="activate_routine_confirmation">Do you want to activate \'%1$s\' now?</string>
+    <string name="no_app_limits_applied">No app limits were applied</string>
+
+    <plurals name="app_limits_applied">
+        <item quantity="one">%1$d app limits</item>
+        <item quantity="other">%1$d app limits</item>
+    </plurals>
+
+    <string name="routine_activated_toast">Routine \'%1$s\' activated! %2$s</string>
+    <string name="activate">Activate</string>
+    <string name="edit">Edit</string>
+    <string name="no_app_limits_set">No app limits set</string>
+
+    <string name="unknown_schedule">Unknown schedule</string>
+    <string name="schedule_from_to">\ from %1$s to %2$s</string>
+    <string name="schedule_at"> at %1$s</string>
+    <string name="every_day">Every day</string>
+    <string name="weekdays">Weekdays</string>
+    <string name="weekends">Weekends</string>
+    <string name="manual_activation">Manual activation</string>
+    <string name="min_short_suffix">m</string>
+    <string name="minutes_short_format">%1$dm</string>
+    <string name="hours_short_format">%1$dh</string>
+    <string name="hour_min_short_suffix">%1$dh %2$dm</string>
+    <string name="less_than_one_minute">&lt; 1m</string>
+    <string name="zero_time">0</string>
+
+    <!-- Timer Activity strings -->
+    <string name="focus_mode_title">Focus Mode</string>
+    <string name="quick_picks">Quick picks</string>
+    <string name="enter_zen_mode">Enter Zen mode</string>
+    <string name="exit_zen_mode">Exit Zen mode</string>
+    <string name="timer_tab">Timer</string>
+    <string name="count_up_tab">Count Up</string>
+    <string name="pomodoro_tab">Pomodoro</string>
+    <string name="increase_hours">Increase Hours</string>
+    <string name="increase_minutes">Increase Minutes</string>
+    <string name="decrease_hours">Decrease Hours</string>
+    <string name="decrease_minutes">Decrease Minutes</string>
+    <string name="hours">Hours</string>
+    <string name="minutes">Minutes</string>
+    <string name="strict_mode">Strict Mode</string>
+    <string name="flexible_mode">Flexible Mode</string>
+    <string name="no_pausing_allowed">No pausing allowed</string>
+    <string name="pause_resume_anytime">Pause &amp; resume anytime</string>
+    <string name="start">Start</string>
+    <string name="start_count_up">Start Count Up</string>
+    <string name="count_up_mode_label">Count Up Mode</string>
+    <string name="countdown_mode_label">Countdown Mode</string>
+    <string name="count_up_ratio_label">Focus-to-Break Ratio</string>
+    <string name="count_up_ratio_description">Earn 1m break for every %1$d min focus</string>
+    <string name="earned_break_budget">%1$s break earned</string>
+    <string name="redeem_break">Break</string>
+    <string name="take_break">Take Break</string>
+    <string name="bank_break">Bank &amp; Stop</string>
+    <string name="take_earned_break_message">You have earned %1$s of break time. Take it now?</string>
+    <string name="ratio_format">%1$d:1</string>
+    <string name="focus_label">Focus</string>
+    <string name="short_break_label">Short Break</string>
+    <string name="long_break_label">Long Break</string>
+    <string name="cycles_label">Cycles</string>
+    <string name="start_pomodoro">Start Pomodoro</string>
+    <string name="decrease">Decrease</string>
+    <string name="increase">Increase</string>
+    <string name="cycle_count">Cycle %1$d/%2$d</string>
+    <string name="paused_status">Paused</string>
+    <string name="take_a_break_message">Take a break, apps are unblocked</string>
+    <string name="no_interruptions_message">No interruptions allowed</string>
+    <string name="resume">Resume</string>
+    <string name="pause">Pause</string>
+
+    <!-- Application Daily Limit strings -->
+    <string name="set_daily_usage_limit">Set daily usage limit</string>
+    <string name="usage_history">Usage History</string>
+    <string name="min_day_average">%1$d min/day average</string>
+
+    <!-- About Screen strings -->
+    <string name="version_label">Version %1$s</string>
+    <string name="about_description">Open source productivity app to help you reduce screen time and improve digital wellbeing</string>
+    <string name="developer_label">Developer</string>
+    <string name="developer_description">Open source developer focused on building tools for productivity and security.</string>
+    <string name="view_github_profile">View GitHub Profile</string>
+    <string name="support_description_short">Help keep this project maintained and growing</string>
+    <string name="donate">Donate</string>
+    <string name="donate_subtitle">Keep Reef free and ad-free forever</string>
+    <string name="donate_dialog_title">Support Development</string>
+    <string name="donate_dialog_message">Reef is completely free with no ads, tracking, or hidden costs. If you find it useful, please consider a small donation to help keep it that way. Your support means everything and keeps this project alive. Thank you!</string>
+    <string name="donate_later">Maybe Later</string>
+    <string name="donate_now">Donate</string>
+    <string name="links_title">Links</string>
+    <string name="discord_community">Discord Community</string>
+    <string name="source_code">Source Code</string>
+    <string name="report_issue">Report Issue</string>
+    <string name="foss_label">Free and Open Source Software</string>
+
+    <!-- App Usage Screen strings -->
+    <string name="apps_tracked_one">1 app tracked</string>
+    <string name="apps_tracked_multiple">%1$d apps tracked</string>
+    <string name="sort">Sort</string>
+    <string name="sort_by_time">Sort by time</string>
+    <string name="sort_az">Sort A–Z</string>
+    <string name="fetching_usage_data">Fetching usage data…</string>
+    <string name="show_all_apps">Show all %1$d apps</string>
+    <string name="today">Today</string>
+    <string name="last_7_days">Last 7 days</string>
+    <string name="last_7_days_option">7 Days</string>
+    <string name="previous_week">Previous Week</string>
+    <string name="next_week">Next Week</string>
+    <string name="percentage_format">%1$d%%</string>
+
+    <!-- Whitelist Screen strings -->
+    <string name="whitelist_apps_title">Whitelist Apps</string>
+    <string name="accessibility_error_toast">You cannot use Reef without accessibility service enabled</string>
+    <string name="overlay_permission">Display over other apps</string>
+    <string name="overlay_permission_description">GuardPet needs overlay permission to show the desktop pet, pull-tab timer, and clock above other apps.</string>
+    <string name="required_permissions">Required Permissions</string>
+    <string name="permissions_description">To ensure GuardPet works correctly, please grant the following permissions.</string>
+    <string name="granted">Granted</string>
+    <string name="grant">Grant</string>
+
+    <!-- Timer Controls strings -->
+    <string name="stop">Stop</string>
+
+    <!-- Focus Mode Service strings -->
+    <string name="notification_pause">Pause</string>
+    <string name="notification_resume">Resume</string>
+    <string name="notification_continue">Continue</string>
+    <string name="focus_session_complete">Focus Session Complete</string>
+    <string name="focus_session_complete_message">Well done! You have completed your focus session.</string>
+    <string name="tap_to_start_next_phase">Tap Resume to start</string>
+
+    <!-- Blocker Service strings -->
+    <string name="app_blocked">App blocked</string>
+    <string name="blocked_by_routine">%1$s is blocked by your active routine</string>
+    <string name="reached_limit">%1$s has reached its limit</string>
+    <string name="distraction_blocked">Distraction Blocked</string>
+    <string name="habit_guard_blocked">Habit Guard</string>
+    <string name="you_were_using">You were using %1$s</string>
+
+    <!-- Website Blocker strings -->
+    <string name="website_blocked">Website Blocked</string>
+    <string name="website_blocked_by_routine">Website blocked by active routine</string>
+    <string name="website_reached_limit">%1$s limit reached</string>
+    <string name="add_website">Add Website</string>
+    <string name="edit_website">Edit Website</string>
+    <string name="domain_hint">Domain (e.g. facebook.com)</string>
+    <string name="block_type">Block Type</string>
+    <string name="always_block">Always Block</string>
+    <string name="daily_limit">Daily Limit</string>
+    <string name="website_always_block_desc">This website will be permanently blocked.</string>
+    <string name="website_daily_limit_desc">This website will be blocked after reaching the set daily time limit.</string>
+    <string name="daily_time_limit">Daily Time Limit</string>
+    <string name="permanently_blocked">Permanently Blocked</string>
+    <string name="daily_limits">Daily Limits</string>
+    <string name="always_blocked">Always blocked</string>
+    <string name="blocked_websites">Blocked Websites</string>
+    <string name="blocked_websites_desc">These websites will be blocked during your focus sessions and active routines.</string>
+    <string name="no_websites_added">No websites added</string>
+    <string name="add_websites_desc">Add websites to block them or set time limits</string>
+    <string name="limit_format">Limit: %1$s</string>
+    <string name="save">Save</string>
+
+    <!-- Notification Helper strings -->
+    <string name="blocker_channel_name">Content Blocker</string>
+    <string name="blocker_channel_description">Shows reminders for screen time and when apps are blocked.</string>
+    <string name="website_blocklist">Website Blocklist</string>
+    <string name="website_blocklist_desc">Manage blocked websites</string>
+    <string name="no_usage_data">No usage data available</string>
+    <string name="routine_activated">Routine Activated</string>
+    <string name="routine_deactivated">Routine Deactivated</string>
+    <string name="routine_has_ended">%1$s has ended</string>
+    <string name="time_limit_reminder">Time Limit Reminder</string>
+    <plurals name="app_will_be_blocked_in">
+        <item quantity="one">%1$s will be blocked in %2$d minute</item>
+        <item quantity="other">%1$s will be blocked in %2$d minutes</item>
+    </plurals>
+
+    <string name="routine_channel_name">Routine Alerts</string>
+    <string name="routine_channel_description">Notifications about routine activations and deactivations.</string>
+
+    <string name="reminder_channel_description">Notifications reminding you about screen usage.</string>
+    <string name="reminder_channel_name">Screen Time Reminders</string>
+
+    <string name="focus_mode_channel_name">Focus Mode</string>
+    <string name="focus_mode_channel_description">Notifications related to Focus Mode sessions.</string>
+
+    <!-- Break Alert strings -->
+    <string name="break_ended_title">Break Over!</string>
+    <string name="break_ended_message">Time to get back to work. Your focus session is starting now.</string>
+
+    <string name="slide">Slide</string>
+    <string name="release">Release</string>
+    <string name="slide_description">Slide to start a deep work\nsession</string>
+    <string name="sample_routine">Schedule routines to automate detox</string>
+
+    <string name="start_focus_session">Start a focus session</string>
+    <string name="paused_focus_session">Paused • %1$s</string>
+    <string name="in_progress_focus_session">In progress • %1$s</string>
+
+    <string name="routine_active_single">%1$s active</string>
+    <string name="active_routines_list">Active: %1$s</string>
+
+    <!-- Bottom Navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_stats">Stats</string>
+    <string name="nav_focus">Focus</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Mindful Launch Strings -->
+    <string name="mindful_launch">Mindful Launch</string>
+    <string name="mindful_launch_subtitle">Add countdown friction before opening apps</string>
+    <string name="mindful_launch_settings">Mindful Launch Settings</string>
+    <string name="enable_mindful_launch">Enable Mindful Launch</string>
+    <string name="mindful_launch_description">Adds friction before opening selected distracting apps and prompts for a time limit.</string>
+    <string name="mindful_launch_apps">Selected Apps</string>
+    <string name="mindful_launch_apps_description">Apps that require mindfulness countdown</string>
+    <string name="mindful_launch_duration">Countdown Duration</string>
+    <string name="mindful_launch_warning">Custom Warning Message</string>
+    <string name="mindful_launch_warning_hint">e.g., Take a deep breath. Do you really need to open this?</string>
+    <string name="mindful_launch_limit">Daily Launch Limit</string>
+    <string name="mindful_launch_customize_app">Customize for this app</string>
+    <string name="mindful_launch_uses_defaults">Uses global settings • tap to customize</string>
+    <string name="mindful_launch_custom_summary">%1$d sec delay • %2$s</string>
+    <string name="mindful_launch_limit_summary">%1$d launches/day</string>
+    <string name="mindful_launch_no_limit">No daily limit</string>
+    <string name="mindful_launch_app_settings">Mindful settings for %1$s</string>
+    <string name="mindful_launch_app_settings_description">Override the global delay and launch limit for this app.</string>
+    <string name="mindful_launch_delay_seconds">Delay: %1$d seconds</string>
+    <string name="use_global_settings">Use global settings</string>
+    <string name="enable_launch_limit">Limit Daily Launches</string>
+    <string name="launch_limit_count">Daily Launch Limit Count</string>
+    <string name="launches_suffix">launches</string>
+
+</resources>

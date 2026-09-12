@@ -1,0 +1,81 @@
+// 归档自 HabitGuardian.evaluateVideo — 恢复时贴回 HabitGuardian 并改为 private fun。
+// 依赖：VideoGuard、HabitPolicyStore.defaultVideoSurfaces、HabitRestrictOverlay、R.string.habit_restrict_video_msg
+
+    private fun evaluateVideo(
+        context: Context,
+        packageName: String,
+        resolvedClass: String?,
+        texts: List<String>,
+        rule: PackageRule?
+    ): HabitEval {
+        val surfaces = rule?.surfaces?.ifEmpty { null }
+            ?: HabitPolicyStore.defaultVideoSurfaces("video")
+
+        // 1) 搜索页：允许使用
+        if (VideoGuard.isSearchSurface(resolvedClass, texts)) {
+            HabitRestrictOverlay.dismiss(context)
+            maybeRewardCompliance(context, packageName)
+            return HabitEval.watch()
+        }
+
+        // 2) 点进播放/详情：展开简介，按标题+简介+标签判断
+        if (VideoGuard.isPlayerOrDetail(resolvedClass, texts)) {
+            HabitRestrictOverlay.dismiss(context)
+            val (verdict, hint) = VideoGuard.judgePlayerContent(
+                packageName, resolvedClass, texts, surfaces
+            )
+            return when (verdict) {
+                VideoContentVerdict.PENDING_EXPAND -> HabitEval.watch()
+                VideoContentVerdict.STUDY -> {
+                    maybeRewardCompliance(context, packageName)
+                    HabitEval.watch()
+                }
+                VideoContentVerdict.ENTERTAINMENT -> finishBlock(
+                    context,
+                    packageName,
+                    key = "$packageName:video_meta:$hint",
+                    reason = "作息守护：娱乐向视频「${hint.take(20)}」",
+                    sleepLock = false,
+                    watched = true,
+                    pressBack = true
+                )
+                VideoContentVerdict.UNKNOWN -> {
+                    val hit = VideoGuard.entertainmentHit(texts, surfaces, packageName)
+                    if (hit != null) {
+                        finishBlock(
+                            context,
+                            packageName,
+                            key = "$packageName:${hit.rule.id}",
+                            reason = "作息守护：娱乐内容「${hit.matchedText.take(24)}」",
+                            sleepLock = false,
+                            watched = true,
+                            pressBack = true
+                        )
+                    } else {
+                        HabitEval.watch()
+                    }
+                }
+            }
+        }
+
+        // 3) 首页/推荐壳：遮挡，引导去搜索
+        if (VideoGuard.preferCover(texts)) {
+            HabitRestrictOverlay.request(
+                context,
+                context.getString(R.string.habit_restrict_video_msg)
+            )
+            return HabitEval.watch()
+        }
+
+        // 4) 其它非搜索页：返回
+        HabitRestrictOverlay.dismiss(context)
+        return finishBlock(
+            context,
+            packageName,
+            key = "$packageName:video_nonsearch",
+            reason = "作息守护：视频应用仅允许搜索",
+            sleepLock = false,
+            watched = true,
+            pressBack = true
+        )
+    }

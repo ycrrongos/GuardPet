@@ -1,0 +1,780 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/pageRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/page_background">
+
+    <LinearLayout
+        android:id="@+id/contentColumn"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_gravity="center_horizontal"
+        android:orientation="vertical">
+
+        <androidx.core.widget.NestedScrollView
+            android:id="@+id/mainScroll"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:clipToPadding="false"
+            android:fillViewport="true"
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingStart="24dp"
+                android:paddingTop="20dp"
+                android:paddingEnd="24dp"
+                android:paddingBottom="24dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="sans-serif-medium"
+                            android:includeFontPadding="false"
+                            android:letterSpacing="-0.05"
+                            android:text="@string/brand_wordmark"
+                            android:textColor="@color/text_primary"
+                            android:textSize="32sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="7dp"
+                            android:includeFontPadding="false"
+                            android:text="@string/brand_subtitle"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/statusBadge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/status_background"
+                        android:includeFontPadding="false"
+                        android:paddingStart="13dp"
+                        android:paddingTop="9dp"
+                        android:paddingEnd="13dp"
+                        android:paddingBottom="9dp"
+                        android:text="@string/badge_stopped"
+                        android:textColor="@color/brand_primary"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:background="@drawable/hero_background"
+                    android:gravity="center_horizontal"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:fontFamily="sans-serif-medium"
+                        android:includeFontPadding="false"
+                        android:text="@string/hero_title"
+                        android:textColor="@color/text_primary"
+                        android:textSize="23sp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:includeFontPadding="false"
+                        android:text="@string/hero_subtitle"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp" />
+
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="174dp"
+                        android:layout_marginTop="8dp">
+
+                        <View
+                            android:layout_width="158dp"
+                            android:layout_height="158dp"
+                            android:layout_gravity="center"
+                            android:background="@drawable/hero_halo"
+                            android:importantForAccessibility="no" />
+
+                        <View
+                            android:layout_width="106dp"
+                            android:layout_height="10dp"
+                            android:layout_gravity="bottom|center_horizontal"
+                            android:layout_marginBottom="2dp"
+                            android:background="@drawable/hero_shadow"
+                            android:importantForAccessibility="no" />
+
+                        <com.geekathon.guardpet.PetCanvas
+                            android:id="@+id/petPreview"
+                            android:layout_width="174dp"
+                            android:layout_height="170dp"
+                            android:layout_gravity="center"
+                            android:contentDescription="@string/pet_preview_description" />
+                    </FrameLayout>
+
+                    <TextView
+                        android:id="@+id/companionMessage"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:accessibilityLiveRegion="polite"
+                        android:gravity="center"
+                        android:includeFontPadding="false"
+                        android:text="@string/hero_message_idle"
+                        android:textColor="@color/brand_primary"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/card_background"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingTop="17dp"
+                    android:paddingBottom="17dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:includeFontPadding="false"
+                            android:text="@string/mood_label"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="12sp" />
+
+                        <TextView
+                            android:id="@+id/moodText"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:fontFamily="sans-serif-medium"
+                            android:includeFontPadding="false"
+                            android:text="@string/mood_number_default"
+                            android:textColor="@color/text_primary"
+                            android:textSize="26sp" />
+
+                        <ProgressBar
+                            android:id="@+id/moodProgress"
+                            style="?android:attr/progressBarStyleHorizontal"
+                            android:layout_width="match_parent"
+                            android:layout_height="4dp"
+                            android:layout_marginTop="9dp"
+                            android:importantForAccessibility="no"
+                            android:max="100"
+                            android:progressDrawable="@drawable/miku_progress" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="1dp"
+                        android:layout_height="44dp"
+                        android:background="@color/panel_divider"
+                        android:importantForAccessibility="no" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:includeFontPadding="false"
+                            android:text="@string/hunger_label"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="12sp" />
+
+                        <TextView
+                            android:id="@+id/hungerText"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:fontFamily="sans-serif-medium"
+                            android:includeFontPadding="false"
+                            android:text="@string/hunger_number_default"
+                            android:textColor="@color/text_primary"
+                            android:textSize="26sp" />
+
+                        <ProgressBar
+                            android:id="@+id/hungerProgress"
+                            style="?android:attr/progressBarStyleHorizontal"
+                            android:layout_width="match_parent"
+                            android:layout_height="4dp"
+                            android:layout_marginTop="9dp"
+                            android:importantForAccessibility="no"
+                            android:max="100"
+                            android:progressDrawable="@drawable/miku_progress" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="1dp"
+                        android:layout_height="44dp"
+                        android:background="@color/panel_divider"
+                        android:importantForAccessibility="no" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:includeFontPadding="false"
+                            android:text="@string/food_label"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="12sp" />
+
+                        <TextView
+                            android:id="@+id/foodText"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:fontFamily="sans-serif-medium"
+                            android:includeFontPadding="false"
+                            android:text="@string/food_number_default"
+                            android:textColor="@color/text_primary"
+                            android:textSize="26sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:includeFontPadding="false"
+                            android:text="@string/food_unit"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="10sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="18dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:fontFamily="sans-serif-medium"
+                        android:includeFontPadding="false"
+                        android:text="@string/interaction_title"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp" />
+
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/todoButton"
+                        style="@style/Widget.GuardPet.Button.ghost"
+                        android:layout_width="wrap_content"
+                        android:layout_height="48dp"
+                        android:background="@android:color/transparent"
+                        android:drawableEnd="@drawable/ic_arrow"
+                        android:drawablePadding="6dp"
+                        android:text="@string/todo_short"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/feedButton"
+                        style="@style/Widget.GuardPet.Button.secondary"
+                        android:layout_width="0dp"
+                        android:layout_height="76dp"
+                        android:layout_marginStart="0dp"
+                        android:layout_weight="1"
+                        android:drawableTop="@drawable/ic_food"
+                        android:drawablePadding="7dp"
+                        android:gravity="center"
+                        android:paddingTop="12dp"
+                        android:paddingBottom="10dp"
+                        android:text="@string/feed"
+                        app:drawableTint="@color/control_text" />
+
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/petButton"
+                        style="@style/Widget.GuardPet.Button.secondary"
+                        android:layout_width="0dp"
+                        android:layout_height="76dp"
+                        android:layout_marginStart="10dp"
+                        android:layout_weight="1"
+                        android:drawableTop="@drawable/ic_heart"
+                        android:drawablePadding="7dp"
+                        android:gravity="center"
+                        android:paddingTop="12dp"
+                        android:paddingBottom="10dp"
+                        android:text="@string/pet"
+                        app:drawableTint="@color/control_text" />
+
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/sleepButton"
+                        style="@style/Widget.GuardPet.Button.secondary"
+                        android:layout_width="0dp"
+                        android:layout_height="76dp"
+                        android:layout_marginStart="10dp"
+                        android:layout_weight="1"
+                        android:drawableTop="@drawable/ic_moon"
+                        android:drawablePadding="7dp"
+                        android:gravity="center"
+                        android:paddingTop="12dp"
+                        android:paddingBottom="10dp"
+                        android:text="@string/sleep"
+                        app:drawableTint="@color/control_text" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:background="@drawable/card_background"
+                    android:orientation="vertical"
+                    android:paddingStart="18dp"
+                    android:paddingEnd="18dp"
+                    android:paddingBottom="8dp">
+
+                    <LinearLayout
+                        android:id="@+id/settingsToggle"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:contentDescription="@string/settings_expand"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:importantForAccessibility="no"
+                            android:src="@drawable/ic_tune" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="10dp"
+                            android:layout_weight="1"
+                            android:fontFamily="sans-serif-medium"
+                            android:includeFontPadding="false"
+                            android:text="@string/settings_title"
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:id="@+id/settingsSummary"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="6dp"
+                            android:includeFontPadding="false"
+                            android:text="@string/settings_collapsed"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="12sp" />
+
+                        <ImageView
+                            android:id="@+id/settingsChevron"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:importantForAccessibility="no"
+                            android:src="@drawable/ic_chevron" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="@color/panel_divider"
+                        android:importantForAccessibility="no" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="64dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:includeFontPadding="false"
+                                android:text="@string/free_walk"
+                                android:textColor="@color/text_primary"
+                                android:textSize="14sp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="5dp"
+                                android:includeFontPadding="false"
+                                android:text="@string/free_walk_description"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="11sp" />
+                        </LinearLayout>
+
+                        <androidx.appcompat.widget.SwitchCompat
+                            android:id="@+id/freeWalkSwitch"
+                            android:layout_width="wrap_content"
+                            android:layout_height="48dp"
+                            android:contentDescription="@string/free_walk"
+                            app:showText="false"
+                            app:switchMinWidth="46dp"
+                            app:thumbTint="@color/white"
+                            app:trackTint="@color/switch_track" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/settingsDetails"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:paddingTop="8dp"
+                        android:paddingBottom="4dp"
+                        android:visibility="gone">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:includeFontPadding="false"
+                                android:text="@string/pet_size"
+                                android:textColor="@color/text_primary"
+                                android:textSize="13sp" />
+
+                            <TextView
+                                android:id="@+id/petSizeValue"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:includeFontPadding="false"
+                                android:text="@string/percent_default"
+                                android:textColor="@color/brand_primary"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+
+                        <androidx.appcompat.widget.AppCompatSeekBar
+                            android:id="@+id/petSizeSeek"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:contentDescription="@string/pet_size_hint"
+                            android:max="100"
+                            android:maxHeight="4dp"
+                            android:minHeight="4dp"
+                            android:paddingStart="10dp"
+                            android:paddingEnd="10dp"
+                            android:progressDrawable="@drawable/miku_progress"
+                            android:splitTrack="false"
+                            android:thumb="@drawable/miku_seek_thumb" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:includeFontPadding="false"
+                                android:text="@string/walk_speed"
+                                android:textColor="@color/text_primary"
+                                android:textSize="13sp" />
+
+                            <TextView
+                                android:id="@+id/walkSpeedValue"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:includeFontPadding="false"
+                                android:text="@string/percent_default"
+                                android:textColor="@color/brand_primary"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+
+                        <androidx.appcompat.widget.AppCompatSeekBar
+                            android:id="@+id/walkSpeedSeek"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:contentDescription="@string/walk_speed_hint"
+                            android:max="100"
+                            android:maxHeight="4dp"
+                            android:minHeight="4dp"
+                            android:paddingStart="10dp"
+                            android:paddingEnd="10dp"
+                            android:progressDrawable="@drawable/miku_progress"
+                            android:splitTrack="false"
+                            android:thumb="@drawable/miku_seek_thumb" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/card_background"
+                    android:orientation="vertical"
+                    android:padding="18dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif-medium"
+                        android:includeFontPadding="false"
+                        android:text="@string/gesture_shortcuts"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:includeFontPadding="false"
+                        android:text="@string/gesture_shortcuts_hint"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:includeFontPadding="false"
+                        android:text="@string/gesture_single_tap"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp" />
+
+                    <Spinner
+                        android:id="@+id/gestureSingleTap"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:includeFontPadding="false"
+                        android:text="@string/gesture_double_tap"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp" />
+
+                    <Spinner
+                        android:id="@+id/gestureDoubleTap"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:includeFontPadding="false"
+                        android:text="@string/gesture_shake"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp" />
+
+                    <Spinner
+                        android:id="@+id/gestureShake"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:includeFontPadding="false"
+                        android:text="@string/gesture_double_tap_hold"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp" />
+
+                    <Spinner
+                        android:id="@+id/gestureDoubleTapHold"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:includeFontPadding="false"
+                        android:text="@string/gesture_drag_phone_shake"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp" />
+
+                    <Spinner
+                        android:id="@+id/gestureDragPhoneShake"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/permissionStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/card_background"
+                    android:includeFontPadding="false"
+                    android:padding="16dp"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp" />
+
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/focusButton"
+                    style="@style/Widget.GuardPet.Button.secondary"
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/focus_timer" />
+
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/habitGuardButton"
+                    style="@style/Widget.GuardPet.Button.secondary"
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/habit_guard_entry" />
+
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/reefSettingsButton"
+                    style="@style/Widget.GuardPet.Button.secondary"
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/reef_settings" />
+
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/flashNoteButton"
+                    style="@style/Widget.GuardPet.Button.secondary"
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/flash_note" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/card_background"
+                    android:orientation="vertical"
+                    android:padding="18dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif-medium"
+                        android:includeFontPadding="false"
+                        android:text="@string/flash_note_list"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp" />
+
+                    <LinearLayout
+                        android:id="@+id/flashNoteContainer"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:orientation="vertical" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/focusAttribution"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:autoLink="web"
+                    android:includeFontPadding="false"
+                    android:text="@string/focus_attribution"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/page_background"
+            android:orientation="vertical"
+            android:paddingStart="24dp"
+            android:paddingTop="10dp"
+            android:paddingEnd="24dp"
+            android:paddingBottom="12dp">
+
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/startButton"
+                style="@style/Widget.GuardPet.Button.primary"
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:text="@string/start_companion"
+                android:textSize="15sp" />
+
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/stopButton"
+                style="@style/Widget.GuardPet.Button.ghost"
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:text="@string/pause_companion"
+                android:textSize="15sp"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/statusText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:accessibilityLiveRegion="polite"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:text="@string/status_stopped"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp" />
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>

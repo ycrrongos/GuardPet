@@ -1,0 +1,37 @@
+// 归档自 AppActiveCatalog.classifyVideoActives — 恢复「仅搜索」分析时贴回。
+
+    private fun classifyVideoActives(
+        context: Context,
+        packageName: String,
+        actives: List<Pair<String, String>>
+    ): List<AppActiveInfo> {
+        val appLabel = AppTierClassifier.appLabel(context, packageName)
+        return actives.map { (name, label) ->
+            val shown = displayLabelForActive(name, label, appLabel)
+            val short = name.substringAfterLast('.').lowercase()
+            val path = name.lowercase()
+            when {
+                listOf("search", "sousuo").any { it in short } || shown.contains("搜索") ->
+                    AppActiveInfo(name, shown, ActiveKind.WORK, blockInWork = false, patterns = emptyList())
+                listOf("player", "videodetail", "ugcdetail", "bangumi", "playerview").any { it in short } ->
+                    AppActiveInfo(
+                        name, shown, ActiveKind.ENTERTAINMENT, blockInWork = true,
+                        patterns = entertainmentPatternsFrom(name, shown, appLabel)
+                    )
+                (short.contains("live") && "search" !in short) ||
+                    path.contains(".live.") ->
+                    AppActiveInfo(
+                        name, shown, ActiveKind.ENTERTAINMENT, blockInWork = true,
+                        patterns = entertainmentPatternsFrom(name, shown, appLabel)
+                    )
+                (short.contains("video") && "search" !in short) ||
+                    path.contains(".video.") || path.contains(".player.") ->
+                    AppActiveInfo(
+                        name, shown, ActiveKind.ENTERTAINMENT, blockInWork = true,
+                        patterns = entertainmentPatternsFrom(name, shown, appLabel)
+                    )
+                else ->
+                    AppActiveInfo(name, shown, ActiveKind.UNCERTAIN, blockInWork = false, patterns = emptyList())
+            }
+        }.let { sanitizeEntertainmentMarks(it, appLabel, maxEntertainment = 80) }
+    }
