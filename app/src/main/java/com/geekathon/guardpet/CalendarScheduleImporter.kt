@@ -19,13 +19,35 @@ object CalendarScheduleImporter {
     /**
      * 导入今日系统日历事件。返回 (新增条数, 跳过已有, 错误信息)。
      */
-    fun importToday(context: Context, today: LocalDate = LocalDate.now()): Triple<Int, Int, String?> {
+    fun importToday(context: Context, today: LocalDate = LocalDate.now()): Triple<Int, Int, String?> =
+        importRange(context, today, today)
+
+    /**
+     * 导入 [start]..[endInclusive] 闭区间内的系统日历事件（多日日程页用）。
+     */
+    fun importUpcoming(
+        context: Context,
+        start: LocalDate = LocalDate.now(),
+        days: Long = 30
+    ): Triple<Int, Int, String?> {
+        val end = start.plusDays(days.coerceIn(1, 90) - 1)
+        return importRange(context, start, end)
+    }
+
+    fun importRange(
+        context: Context,
+        start: LocalDate,
+        endInclusive: LocalDate
+    ): Triple<Int, Int, String?> {
         if (!hasPermission(context)) {
             return Triple(0, 0, "需要日历权限")
         }
+        if (endInclusive.isBefore(start)) {
+            return Triple(0, 0, "日期范围无效")
+        }
         val zone = ZoneId.systemDefault()
-        val startMs = today.atStartOfDay(zone).toInstant().toEpochMilli()
-        val endMs = today.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
+        val startMs = start.atStartOfDay(zone).toInstant().toEpochMilli()
+        val endMs = endInclusive.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
         val projection = arrayOf(
             CalendarContract.Instances.EVENT_ID,
             CalendarContract.Instances.TITLE,
@@ -53,14 +75,16 @@ object CalendarScheduleImporter {
                 val idxAllDay = cursor.getColumnIndex(CalendarContract.Instances.ALL_DAY)
                 while (cursor.moveToNext()) {
                     val eventId = cursor.getLong(idxId)
-                    if (DayScheduleStore.findByCalendarEvent(eventId, today.toString()) != null) {
+                    val begin = cursor.getLong(idxBegin)
+                    val end = cursor.getLong(idxEnd)
+                    val allDay = cursor.getInt(idxAllDay) == 1
+                    val eventDate = Instant.ofEpochMilli(begin).atZone(zone).toLocalDate()
+                    if (eventDate.isBefore(start) || eventDate.isAfter(endInclusive)) continue
+                    if (DayScheduleStore.findByCalendarEvent(eventId, eventDate.toString()) != null) {
                         skipped++
                         continue
                     }
                     val title = cursor.getString(idxTitle)?.trim().orEmpty().ifBlank { "日历事项" }
-                    val begin = cursor.getLong(idxBegin)
-                    val end = cursor.getLong(idxEnd)
-                    val allDay = cursor.getInt(idxAllDay) == 1
                     val startMinutes: Int
                     val endMinutes: Int
                     if (allDay) {
@@ -78,7 +102,7 @@ object CalendarScheduleImporter {
                     DayScheduleStore.insert(
                         DaySchedule(
                             title = title,
-                            date = today.toString(),
+                            date = eventDate.toString(),
                             startMinutes = startMinutes,
                             endMinutes = endMinutes,
                             colorArgb = DayScheduleColor.randomPending(diff, title.hashCode()),

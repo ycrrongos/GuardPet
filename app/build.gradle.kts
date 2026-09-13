@@ -41,6 +41,9 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
+    implementation(libs.androidx.activity)
+    // Embedded MIT calendar component: https://github.com/kizitonwose/Calendar
+    implementation("com.kizitonwose.calendar:view:2.10.1")
     implementation("com.huaban:jieba-analysis:1.0.2")
     // Offline SenseVoice ASR (AAR embeds onnxruntime + jni). Fetch via scripts/fetch-sensevoice-pack.sh
     implementation(files("${rootProject.projectDir}/libs/sherpa-onnx-1.13.8.aar"))

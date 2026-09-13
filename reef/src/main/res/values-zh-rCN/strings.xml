@@ -199,7 +199,7 @@
     <string name="whitelist_apps_title">应用白名单</string>
     <string name="accessibility_error_toast">若不启用无障碍服务，您将无法使用 Reef</string>
     <string name="overlay_permission">显示在其他应用上层</string>
-    <string name="overlay_permission_description">守伴需要悬浮窗权限，才能在其他应用上方显示桌宠、番茄钟拉环和时钟。</string>
+    <string name="overlay_permission_description">守伴需要悬浮窗权限，才能在其他应用上方显示桌宠、提取框和专注窗。</string>
     <string name="required_permissions">必要权限</string>
     <string name="permissions_description">为确保守伴的桌宠、拦截和专注功能正常运行，请授予以下权限。</string>
     <string name="granted">已授予</string>

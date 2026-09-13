@@ -21,6 +21,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import com.geekathon.guardpet.databinding.ActivityMainBinding
 import dev.pranav.reef.PermissionsCheckActivity
+import dev.pranav.reef.ui.FocusStatsEmbedView
 import dev.pranav.reef.util.checkAndRequestMissingPermissions
 import dev.pranav.reef.util.hasUsageStatsPermission
 import dev.pranav.reef.util.isAccessibilityServiceEnabledForBlocker
@@ -33,6 +34,7 @@ class MainActivity : AppCompatActivity() {
     private var skipPermissionPromptOnce = false
     private var stopFlashObserve: (() -> Unit)? = null
     private var settingsExpanded = false
+    private var focusStatsEmbed: FocusStatsEmbedView? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,6 +57,8 @@ class MainActivity : AppCompatActivity() {
         }
         assets = PetAssetRepository(this)
         settings = PetSettings(this)
+
+        bindFocusStatsCard()
 
         binding.petPreview.fitPreviewToCanvas()
         binding.petPreview.show(assets.randomFileFor(PetState.HAPPY))
@@ -120,6 +124,9 @@ class MainActivity : AppCompatActivity() {
         binding.habitGuardButton.setOnClickListener {
             startActivity(Intent(this, HabitGuardianActivity::class.java))
         }
+        binding.schedulePageButton.setOnClickListener {
+            startActivity(Intent(this, ScheduleActivity::class.java))
+        }
         binding.reefSettingsButton.setOnClickListener { FocusLauncher.openSettings(this) }
         binding.flashNoteButton.setOnClickListener { openFlashNoteComposer() }
         binding.focusAttribution.setOnClickListener { FocusLauncher.openAbout(this) }
@@ -128,6 +135,27 @@ class MainActivity : AppCompatActivity() {
         updateSettingLabels()
         updateStatus()
         renderFlashNotes()
+    }
+
+    override fun onDestroy() {
+        focusStatsEmbed?.release()
+        focusStatsEmbed = null
+        super.onDestroy()
+    }
+
+    private fun bindFocusStatsCard() {
+        val host = binding.focusStatsCard
+        host.removeAllViews()
+        val embed = FocusStatsEmbedView(this)
+        host.addView(
+            embed,
+            android.widget.FrameLayout.LayoutParams(
+                android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
+                android.widget.FrameLayout.LayoutParams.MATCH_PARENT
+            )
+        )
+        embed.bindToHost(this, this, this, this)
+        focusStatsEmbed = embed
     }
 
     override fun onResume() {
@@ -374,7 +402,7 @@ class MainActivity : AppCompatActivity() {
             text.text = note.text
             colorDot.background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
-                setColor(FlashNoteColor.argb(note.color))
+                setColor(FlashNoteColor.argb(note.color, note.category))
             }
             delete.setOnClickListener {
                 if (FlashNotePlayer.playingId == note.id) FlashNotePlayer.stop()

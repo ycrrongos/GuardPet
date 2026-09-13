@@ -1,10 +1,8 @@
 package com.geekathon.guardpet
 
-import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ApplicationInfo
-import android.content.pm.PackageManager
 import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.os.Looper
@@ -21,7 +19,6 @@ import android.widget.CheckBox
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
-import androidx.core.content.ContextCompat
 import com.geekathon.guardpet.databinding.OverlayDayScheduleCardBinding
 import com.geekathon.guardpet.databinding.OverlayDaySchedulesBinding
 import java.time.LocalDate
@@ -80,8 +77,9 @@ object ScheduleHud {
         overlay?.importCalendar()
     }
 
+    /** MicPermissionActivity 日程请求授权成功后回调。 */
     internal fun onMicGranted() {
-        overlay?.onMicGranted()
+        // 下次按住语音按钮时再录音；此处不自动开录
     }
 }
 
@@ -133,12 +131,6 @@ class ScheduleOverlay(private val app: Context) {
     fun raiseWindow() {
         if (!attached || closing) return
         DualOverlayShell.bringSideToFront(OverlayLayerCoordinator.Side.SCHEDULE)
-    }
-
-    fun onMicGranted() {
-        if (attached && !closing) {
-            Toast.makeText(app, R.string.schedule_mic_ready, Toast.LENGTH_SHORT).show()
-        }
     }
 
     fun setChromeVisible(visible: Boolean) {
@@ -309,6 +301,21 @@ class ScheduleOverlay(private val app: Context) {
                 setTextColor(app.getColor(R.color.text_primary))
                 textSize = 13f
             }
+            val itemDate = draft.date ?: pendingDate
+            val dateBtn = TextView(themed).apply {
+                text = app.getString(
+                    R.string.schedule_draft_date,
+                    ScheduleDateParse.label(itemDate, LocalDate.now())
+                )
+                setTextColor(app.getColor(R.color.text_primary))
+                textSize = 12f
+                setPadding(12, 10, 12, 10)
+                background = app.getDrawable(R.drawable.flash_input_bg)
+                setOnClickListener {
+                    ScheduleHud.noteInteraction()
+                    pickDateForDraft(index)
+                }
+            }
             val timeBtn = TextView(themed).apply {
                 val start = draft.startMinutes
                 val end = draft.endMinutes ?: start?.plus(60)
@@ -348,12 +355,25 @@ class ScheduleOverlay(private val app: Context) {
                 row.addView(chip)
             }
             row.addView(title)
+            row.addView(dateBtn)
             row.addView(timeBtn)
             rows.addView(row)
         }
         val allReady = pendingDrafts.none { it.needsTime || it.startMinutes == null }
         binding.scheduleFillConfirmButton.alpha = if (allReady) 1f else 0.45f
         binding.scheduleFillConfirmButton.isEnabled = allReady
+    }
+
+    private fun pickDateForDraft(index: Int) {
+        val draft = pendingDrafts.getOrNull(index) ?: return
+        val current = draft.date ?: pendingDate
+        ScheduleDatePickActivity.request(app, index, current) { i, date ->
+            handler.post {
+                val cur = pendingDrafts.getOrNull(i) ?: return@post
+                pendingDrafts[i] = cur.copy(date = date)
+                renderFillPanel()
+            }
+        }
     }
 
     private fun pickTimesForDraft(index: Int) {
@@ -404,14 +424,11 @@ class ScheduleOverlay(private val app: Context) {
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     ScheduleHud.noteInteraction()
-                    if (!ensureScheduleMicPermission()) return@setOnTouchListener true
                     val rec = FlashNoteRecorder(app)
+                    fillVoiceRecorder = rec
                     if (rec.start()) {
-                        fillVoiceRecorder = rec
                         binding.scheduleFillVoiceButton.text =
                             app.getString(R.string.schedule_listening)
-                    } else {
-                        Toast.makeText(app, R.string.flash_note_record_failed, Toast.LENGTH_SHORT).show()
                     }
                     true
                 }
@@ -504,6 +521,13 @@ class ScheduleOverlay(private val app: Context) {
             val (ok, msg) = DayScheduleStore.markDone(schedule.id)
             Toast.makeText(app, msg, Toast.LENGTH_SHORT).show()
             if (ok) refreshList()
+        }
+        card.scheduleColorButton.visibility =
+            if (schedule.status == DayScheduleStatus.PENDING) View.VISIBLE else View.GONE
+        card.scheduleColorButton.setOnClickListener {
+            ScheduleHud.noteInteraction()
+            val next = schedule.copy(colorArgb = DayScheduleColor.nextColor(schedule.colorArgb))
+            if (DayScheduleStore.update(next)) refreshList()
         }
         card.scheduleDeleteButton.setOnClickListener {
             ScheduleHud.noteInteraction()
@@ -703,15 +727,9 @@ class ScheduleOverlay(private val app: Context) {
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     ScheduleHud.noteInteraction()
-                    if (!ensureScheduleMicPermission()) return@setOnTouchListener true
                     policyVoiceForId = schedule.id
-                    val nextRecorder = FlashNoteRecorder(app)
-                    if (nextRecorder.start()) {
-                        recorder = nextRecorder
-                        card.scheduleVoicePolicyButton.text = "…"
-                    } else {
-                        Toast.makeText(app, R.string.flash_note_record_failed, Toast.LENGTH_SHORT).show()
-                    }
+                    recorder = FlashNoteRecorder(app).also { it.start() }
+                    card.scheduleVoicePolicyButton.text = "…"
                     true
                 }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
@@ -719,9 +737,7 @@ class ScheduleOverlay(private val app: Context) {
                     recorder = null
                     card.scheduleVoicePolicyButton.text =
                         app.getString(R.string.schedule_hold_voice_policy)
-                    val scheduleId = policyVoiceForId
-                    policyVoiceForId = null
-                    if (path != null && scheduleId == schedule.id) {
+                    if (path != null && policyVoiceForId == schedule.id) {
                         SenseVoiceAsr.transcribe(app, path) { spoken ->
                             handler.post {
                                 if (spoken.isNullOrBlank()) {
@@ -732,37 +748,22 @@ class ScheduleOverlay(private val app: Context) {
                                     ).show()
                                     return@post
                                 }
-                                card.scheduleVoicePolicyButton.setText(
-                                    R.string.schedule_policy_parsing
+                                val parsed = ScheduleLlmClient.parsePolicyFromVoice(schedule, spoken)
+                                if (parsed == null) {
+                                    Toast.makeText(
+                                        app,
+                                        R.string.schedule_voice_empty,
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                    return@post
+                                }
+                                val next = schedule.copy(
+                                    allowPackages = parsed.first,
+                                    blockPackages = parsed.second
                                 )
                                 io.execute {
-                                    val current = DayScheduleStore.byId(schedule.id) ?: schedule
-                                    val parsed = ScheduleLlmClient.parsePolicyFromVoice(current, spoken)
-                                    if (parsed == null) {
-                                        handler.post {
-                                            card.scheduleVoicePolicyButton.setText(
-                                                R.string.schedule_hold_voice_policy
-                                            )
-                                            Toast.makeText(
-                                                app,
-                                                R.string.schedule_voice_empty,
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                        }
-                                        return@execute
-                                    }
-                                    val next = current.copy(
-                                        allowPackages = parsed.allowPackages,
-                                        blockPackages = parsed.blockPackages
-                                    )
                                     val review = ScheduleLlmClient.reviewChange(next, "policy")
                                     handler.post {
-                                        card.scheduleVoicePolicyButton.setText(
-                                            R.string.schedule_hold_voice_policy
-                                        )
-                                        parsed.notice?.let {
-                                            Toast.makeText(app, it, Toast.LENGTH_LONG).show()
-                                        }
                                         if (!review.accept) {
                                             Toast.makeText(app, review.reason, Toast.LENGTH_LONG)
                                                 .show()
@@ -784,19 +785,6 @@ class ScheduleOverlay(private val app: Context) {
                 else -> false
             }
         }
-    }
-
-    private fun ensureScheduleMicPermission(): Boolean {
-        if (ContextCompat.checkSelfPermission(app, Manifest.permission.RECORD_AUDIO) ==
-            PackageManager.PERMISSION_GRANTED
-        ) {
-            return true
-        }
-        app.startActivity(
-            MicPermissionActivity.scheduleIntent(app)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
-        )
-        return false
     }
 
     private fun candidatePackages(): List<String> {

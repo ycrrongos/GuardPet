@@ -7,37 +7,6 @@ import android.database.sqlite.SQLiteOpenHelper
 import java.io.File
 import java.time.LocalDate
 
-enum class FlashNoteCategory(val key: String, val labelRes: Int) {
-    SCHEDULE("schedule", R.string.category_schedule),
-    IDEA("idea", R.string.category_idea),
-    DIARY("diary", R.string.category_diary),
-    TODO("todo", R.string.category_todo),
-    OTHER("other", R.string.category_other);
-
-    companion object {
-        fun fromKey(key: String?) = entries.firstOrNull { it.key == key } ?: OTHER
-    }
-}
-
-object FlashNoteColor {
-    val palette = intArrayOf(
-        0xFF6B8FDB.toInt(),
-        0xFFE3926C.toInt(),
-        0xFFC486C8.toInt(),
-        0xFF5AA8B5.toInt(),
-        0xFFE07A62.toInt(),
-        0xFF8896D8.toInt()
-    )
-
-    fun argb(index: Int): Int {
-        if (palette.isEmpty()) return 0xFF6B8FDB.toInt()
-        val size = palette.size
-        return palette[((index % size) + size) % size]
-    }
-
-    fun next(index: Int) = (index + 1) % palette.size
-}
-
 data class FlashNote(
     val id: Long = 0,
     val text: String,
@@ -45,6 +14,7 @@ data class FlashNote(
     val source: String,
     val createdAt: Long = System.currentTimeMillis(),
     val scheduleDate: String? = null,
+    /** 待办：紧急度 0..5；其它分类忽略。 */
     val color: Int = 0,
     val audioPath: String? = null
 ) {
@@ -93,13 +63,11 @@ object FlashNoteStore {
     fun byId(id: Long): FlashNote? =
         query("id=?", arrayOf(id.toString())).firstOrNull()
 
-    fun all(): List<FlashNote> = query(null, null)
+    fun all(): List<FlashNote> =
+        query(null, null).filter { it.category != FlashNoteCategory.SCHEDULE }
 
     fun todaySchedules(today: LocalDate = LocalDate.now()): List<FlashNote> =
-        query(
-            "category=? AND schedule_date=?",
-            arrayOf(FlashNoteCategory.SCHEDULE.key, today.toString())
-        )
+        emptyList() // 日程只进 DayScheduleStore，不再进闪记列表
 
     private fun values(note: FlashNote, includeId: Boolean) = ContentValues().apply {
         if (includeId && note.id > 0) put("id", note.id)

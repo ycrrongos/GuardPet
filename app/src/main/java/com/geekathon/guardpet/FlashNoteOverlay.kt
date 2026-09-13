@@ -619,11 +619,7 @@ class FlashNoteOverlay(private val app: Context) {
     private fun inflateCard(note: FlashNote): View {
         val card = OverlayFlashNoteCardBinding.inflate(inflater, binding.noteContainer, false)
         card.root.tag = note.id
-        val color = FlashNoteColor.argb(note.color)
-        card.root.background = GradientDrawable().apply {
-            setColor(color)
-            cornerRadius = dp(22f)
-        }
+        FlashNoteColor.applyCardBackground(card.root, note, dp(22f))
         val expanded = expandedId == note.id
         applyCardExpandedState(card, expanded, animate = false)
         val preview = note.text.ifBlank { app.getString(R.string.flash_note_voice_placeholder) }
@@ -634,9 +630,19 @@ class FlashNoteOverlay(private val app: Context) {
             Instant.ofEpochMilli(note.createdAt).atZone(ZoneId.systemDefault())
         )
         card.expandedText.text = preview
-        card.colorMark.setOnClickListener {
-            FlashNoteHud.noteInteraction()
-            FlashNoteStore.update(note.copy(color = FlashNoteColor.next(note.color)))
+        if (note.category == FlashNoteCategory.TODO) {
+            card.colorMark.visibility = View.VISIBLE
+            card.colorMark.setOnClickListener {
+                FlashNoteHud.noteInteraction()
+                FlashNoteStore.update(
+                    note.copy(color = FlashNoteColor.nextTodoUrgency(note.color))
+                )
+            }
+            bindExpandedColors(card.expandedColors, note)
+        } else {
+            card.colorMark.visibility = View.GONE
+            card.expandedColors.removeAllViews()
+            card.expandedColors.visibility = View.GONE
         }
         card.collapseButton.setOnClickListener {
             FlashNoteHud.noteInteraction()
@@ -650,7 +656,6 @@ class FlashNoteOverlay(private val app: Context) {
             FlashNoteStore.delete(note.id)
             if (expandedId == note.id) expandedId = null
         }
-        bindExpandedColors(card.expandedColors, note)
         card.collapsedRow.setOnClickListener {
             FlashNoteHud.noteInteraction()
             if (closing) return@setOnClickListener
@@ -782,8 +787,9 @@ class FlashNoteOverlay(private val app: Context) {
     }
 
     private fun bindExpandedColors(row: LinearLayout, note: FlashNote) {
+        row.visibility = View.VISIBLE
         row.removeAllViews()
-        FlashNoteColor.palette.forEachIndexed { index, color ->
+        FlashNoteColor.TODO_URGENCY.forEachIndexed { index, color ->
             row.addView(colorDot(row.context, color, index == note.color, lightStroke = false) {
                 FlashNoteStore.update(note.copy(color = index))
             })
@@ -793,7 +799,12 @@ class FlashNoteOverlay(private val app: Context) {
     private fun bindComposerColors() {
         val row = binding.composerColors
         row.removeAllViews()
-        FlashNoteColor.palette.forEachIndexed { index, color ->
+        if (composerCategory != FlashNoteCategory.TODO) {
+            row.visibility = View.GONE
+            return
+        }
+        row.visibility = View.VISIBLE
+        FlashNoteColor.TODO_URGENCY.forEachIndexed { index, color ->
             row.addView(colorDot(row.context, color, index == composerColor, lightStroke = true) {
                 composerColor = index
                 bindComposerColors()
@@ -807,6 +818,13 @@ class FlashNoteOverlay(private val app: Context) {
         row.removeAllViews()
         FlashNoteCategory.entries.forEach { category ->
             val selected = category == composerCategory
+            val chipColor = when (category) {
+                FlashNoteCategory.IDEA -> FlashNoteColor.IDEA_YELLOW
+                FlashNoteCategory.DIARY -> FlashNoteColor.DIARY_SUN
+                FlashNoteCategory.TODO -> FlashNoteColor.argb(composerColor, FlashNoteCategory.TODO)
+                FlashNoteCategory.SCHEDULE -> 0xFF417C69.toInt()
+                FlashNoteCategory.OTHER -> FlashNoteColor.OTHER_SILVER
+            }
             val chip = TextView(themed).apply {
                 text = app.getString(category.labelRes)
                 setTextColor(if (selected) Color.WHITE else 0xFF5F6368.toInt())
@@ -814,12 +832,15 @@ class FlashNoteOverlay(private val app: Context) {
                 setPadding(dp(10), dp(4), dp(10), dp(4))
                 background = GradientDrawable().apply {
                     cornerRadius = dp(14f)
-                    setColor(if (selected) FlashNoteColor.argb(composerColor) else 0x14202124)
+                    setColor(if (selected) chipColor else 0x14202124)
                 }
                 setOnClickListener {
                     composerCategory = category
+                    if (category != FlashNoteCategory.TODO) composerColor = 2
                     binding.composerDateButton.visibility =
                         if (category == FlashNoteCategory.SCHEDULE) View.VISIBLE else View.GONE
+                    updateSaveButtonLabel()
+                    bindComposerColors()
                     bindComposerCategories()
                 }
             }
@@ -832,6 +853,18 @@ class FlashNoteOverlay(private val app: Context) {
         }
         binding.composerDateButton.visibility =
             if (composerCategory == FlashNoteCategory.SCHEDULE) View.VISIBLE else View.GONE
+        updateSaveButtonLabel()
+        bindComposerColors()
+    }
+
+    private fun updateSaveButtonLabel() {
+        binding.composerSaveButton.setText(
+            if (composerCategory == FlashNoteCategory.SCHEDULE) {
+                R.string.save_schedule
+            } else {
+                R.string.save_note
+            }
+        )
     }
 
     private fun colorDot(
@@ -1074,7 +1107,7 @@ class FlashNoteOverlay(private val app: Context) {
             Toast.makeText(app, R.string.flash_note_empty, Toast.LENGTH_SHORT).show()
             return
         }
-        // 日程分类：走富日程 AI 管线
+        // 日程分类：只进日程，不进闪记列表
         if (composerCategory == FlashNoteCategory.SCHEDULE) {
             val noteText = text
             val date = scheduleDate
@@ -1089,21 +1122,10 @@ class FlashNoteOverlay(private val app: Context) {
                         Toast.makeText(app, R.string.schedule_parse_empty, Toast.LENGTH_SHORT).show()
                         return@post
                     }
-                    FlashNoteStore.insert(
-                        FlashNote(
-                            text = noteText,
-                            category = FlashNoteCategory.SCHEDULE,
-                            source = composerSource,
-                            scheduleDate = date.toString(),
-                            color = composerColor,
-                            audioPath = recordedPath
-                        )
-                    )
                     binding.composerInput.setText("")
                     recordedPath = null
                     composerSource = "typed"
                     setComposerVisible(false, animated = true)
-                    bindNotes()
                     if (drafts.any { it.needsTime || it.startMinutes == null }) {
                         ScheduleHud.showFillTimes(app, drafts, noteText, date)
                     } else {
@@ -1127,13 +1149,14 @@ class FlashNoteOverlay(private val app: Context) {
             }.start()
             return
         }
+        val colorIndex = if (composerCategory == FlashNoteCategory.TODO) composerColor else 0
         FlashNoteStore.insert(
             FlashNote(
                 text = text,
                 category = composerCategory,
                 source = composerSource,
                 scheduleDate = null,
-                color = composerColor,
+                color = colorIndex,
                 audioPath = recordedPath
             )
         )

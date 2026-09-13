@@ -106,6 +106,19 @@
                 android:textSize="12sp" />
 
             <TextView
+                android:id="@+id/scheduleColorButton"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/flash_play_circle"
+                android:gravity="center"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:text="@string/schedule_change_color"
+                android:textColor="#FFFFFFFF"
+                android:textSize="12sp" />
+
+            <TextView
                 android:id="@+id/scheduleEditPolicyButton"
                 android:layout_width="wrap_content"
                 android:layout_height="32dp"

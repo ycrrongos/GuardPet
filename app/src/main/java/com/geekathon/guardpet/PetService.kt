@@ -45,7 +45,6 @@ class PetService : Service() {
     private var habitRestrictOverlay: HabitRestrictOverlay? = null
     private var speechBubbleOverlay: PetSpeechBubbleOverlay? = null
     private var textCropOverlay: TextCropOverlay? = null
-    private var focusTimerOverlay: FocusTimerOverlay? = null
     private var phoneShakeListener: android.hardware.SensorEventListener? = null
     private var draggingPet = false
     private var phoneShakeCooling = false
@@ -184,8 +183,6 @@ class PetService : Service() {
         textCropOverlay?.close()
         textCropOverlay = null
         stopPhoneShakeListen()
-        focusTimerOverlay?.close()
-        focusTimerOverlay = null
         petView?.let { runCatching { windowManager.removeView(it) } }
         petView = null
         isRunning = false
@@ -387,12 +384,10 @@ class PetService : Service() {
     fun openFocusTimer() {
         menuOverlay?.close()
         runCatching {
-            if (focusTimerOverlay == null) {
-                focusTimerOverlay = FocusTimerOverlay(this, windowManager)
-            }
-            focusTimerOverlay?.show()
+            // 用独立透明 Activity 承载 Reef Compose（Service overlay 易因 Lifecycle/SavedState 崩溃）
+            FocusTimerActivity.open(this)
         }.onFailure {
-            focusTimerOverlay = null
+            android.util.Log.e("PetService", "openFocusTimer failed", it)
             Toast.makeText(
                 this,
                 getString(R.string.panel_open_failed, it.localizedMessage ?: it.javaClass.simpleName),
@@ -418,6 +413,22 @@ class PetService : Service() {
         menuOverlay?.close()
         runCatching {
             FlashNoteHud.showList(this)
+        }.onFailure {
+            Toast.makeText(
+                this,
+                getString(R.string.panel_open_failed, it.localizedMessage ?: it.javaClass.simpleName),
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
+    fun openSchedulePage() {
+        menuOverlay?.close()
+        runCatching {
+            startActivity(
+                android.content.Intent(this, ScheduleActivity::class.java)
+                    .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
         }.onFailure {
             Toast.makeText(
                 this,

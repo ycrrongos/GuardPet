@@ -9,6 +9,8 @@ data class ScheduleDraft(
     val startMinutes: Int?,
     val endMinutes: Int?,
     val needsTime: Boolean,
+    /** 条目所属日；空则入库时用锚点日（闪记选中日 / 日程页选中日）。 */
+    val date: LocalDate? = null,
     val suggestedAllow: List<String> = emptyList(),
     val suggestedBlock: List<String> = emptyList(),
     val confidence: Float = 0.5f
@@ -19,14 +21,14 @@ data class ScheduleReviewResult(
     val reason: String
 )
 
-data class SchedulePolicyParseResult(
-    val allowPackages: List<String>,
-    val blockPackages: List<String>,
-    val notice: String? = null
+data class ScheduleAiResult(
+    val changed: Boolean,
+    val message: String,
+    val focusDate: LocalDate? = null
 )
 
 /**
- * 日程 DeepSeek 管线：规范化、补时间对齐、App 策略解析、合理性审查。
+ * 日程 DeepSeek 管线：规范化、补时间对齐、App 策略解析、合理性审查、多日自然语言指令。
  * HTTP 复用 [HabitLlmClient]。
  */
 object ScheduleLlmClient {
@@ -41,14 +43,18 @@ object ScheduleLlmClient {
             return local to null
         }
         val system = """
-你是守伴日程助手。把用户输入拆成今日日程 JSON（不要 markdown）。
+你是守伴多日日程助手。把用户输入拆成日程 JSON（不要 markdown）。
 输出：
-{"items":[{"title":"短标题","start":"HH:mm或空","end":"HH:mm或空","needs_time":true/false,"suggested_allow":["包名"],"suggested_block":["包名"],"confidence":0.0}]}
-规则：缺具体钟点则 needs_time=true、start/end 可空；有「下午三点」等要换算成 24h。
-suggested_* 可空；不要编造未出现的包名。
+{"items":[{"title":"短标题","date":"YYYY-MM-DD","start":"HH:mm或空","end":"HH:mm或空","needs_time":true/false,"suggested_allow":["包名"],"suggested_block":["包名"],"confidence":0.0}]}
+规则：
+- 每条必须有 date。用户说「明天/后天/下周一/9月20日」等要换成具体 YYYY-MM-DD；未提日期则用锚点日（today 字段）。
+- 一条输入可含多天多条（例如「明天开会，后天交作业」→ 两条不同 date）。
+- 缺具体钟点则 needs_time=true、start/end 可空；有「下午三点」等换算成 24h。
+- suggested_* 可空；不要编造未出现的包名。
         """.trimIndent()
         val user = JSONObject()
             .put("today", date.toString())
+            .put("weekday", date.dayOfWeek.name)
             .put("text", text)
             .put("history", DayScheduleStore.summaryForLlm())
             .toString()
@@ -56,7 +62,7 @@ suggested_* 可空；不要编造未出现的包名。
         if (!result.ok || result.json == null) {
             return local to (result.error ?: "AI 解析失败，已用本地规则")
         }
-        val items = parseItems(result.json)
+        val items = parseItems(result.json, date)
         return (items.ifEmpty { local }) to null
     }
 
@@ -70,9 +76,9 @@ suggested_* 可空；不要编造未出现的包名。
             return applyLocalTimeHints(drafts, voiceText) to null
         }
         val system = """
-用户用语音补充各任务时间。把时间对齐到已有任务列表，输出 JSON：
-{"items":[{"title":"与输入尽量一致的标题","start":"HH:mm","end":"HH:mm","needs_time":false}]}
-只输出能确定时间的项；不确定的保持 needs_time=true。
+用户用语音补充各任务时间（可含「明天改到三点」等日期）。把时间对齐到已有任务列表，输出 JSON：
+{"items":[{"title":"与输入尽量一致的标题","date":"YYYY-MM-DD或空","start":"HH:mm","end":"HH:mm","needs_time":false}]}
+只输出能确定时间的项；不确定的保持 needs_time=true。date 空则保持原日期。
         """.trimIndent()
         val user = JSONObject()
             .put("today", date.toString())
@@ -84,6 +90,7 @@ suggested_* 可空；不要编造未出现的包名。
                         arr.put(
                             JSONObject()
                                 .put("title", d.title)
+                                .put("date", (d.date ?: date).toString())
                                 .put("start", d.startMinutes?.let { DayScheduleStore.minutesToHm(it) })
                                 .put("end", d.endMinutes?.let { DayScheduleStore.minutesToHm(it) })
                         )
@@ -95,7 +102,7 @@ suggested_* 可空；不要编造未出现的包名。
         if (!result.ok || result.json == null) {
             return applyLocalTimeHints(drafts, voiceText) to (result.error ?: "对齐失败")
         }
-        val mapped = parseItems(result.json).associateBy {
+        val mapped = parseItems(result.json, date).associateBy {
             DaySchedule.normalizeTitleKey(it.title)
         }
         val merged = drafts.map { d ->
@@ -106,6 +113,7 @@ suggested_* 可空；不要编造未出现的包名。
                 }?.value
             if (hit != null && hit.startMinutes != null) {
                 d.copy(
+                    date = hit.date ?: d.date,
                     startMinutes = hit.startMinutes,
                     endMinutes = hit.endMinutes ?: (hit.startMinutes + 60),
                     needsTime = false
@@ -118,19 +126,10 @@ suggested_* 可空；不要编造未出现的包名。
     fun parsePolicyFromVoice(
         schedule: DaySchedule,
         voiceText: String
-    ): SchedulePolicyParseResult? {
+    ): Pair<List<String>, List<String>>? {
         if (voiceText.isBlank()) return null
-        val local = localPolicyFromVoice(voiceText)
         if (HabitPolicyStore.llmApiKey.isBlank()) {
-            return SchedulePolicyParseResult(local.first, local.second)
-        }
-        val probe = HabitLlmClient.probeModelApi()
-        if (!probe.reachable) {
-            return SchedulePolicyParseResult(
-                allowPackages = local.first,
-                blockPackages = local.second,
-                notice = "模型 API 不可用，已按本地规则处理：${probe.error.orEmpty()}"
-            )
+            return localPolicyFromVoice(voiceText)
         }
         val system = """
 根据语音，为日程填写允许/禁止应用包名。输出 JSON：
@@ -144,14 +143,10 @@ suggested_* 可空；不要编造未出现的包名。
             .put("history", DayScheduleStore.summaryForLlm(schedule.titleKey))
             .toString()
         val result = HabitLlmClient.chatJson(system, user)
-        val json = result.json ?: return SchedulePolicyParseResult(
-            allowPackages = local.first,
-            blockPackages = local.second,
-            notice = "模型策略解析失败，已按本地规则处理：${result.error.orEmpty()}"
-        )
+        val json = result.json ?: return localPolicyFromVoice(voiceText)
         val allow = jsonArrayStrings(json.optJSONArray("allow"))
         val block = jsonArrayStrings(json.optJSONArray("block"))
-        return SchedulePolicyParseResult(allow, block)
+        return allow to block
     }
 
     fun reviewChange(
@@ -206,17 +201,6 @@ suggested_* 可空；不要编造未出现的包名。
         }
         if (HabitPolicyStore.llmApiKey.isBlank()) {
             return ScheduleReviewResult(true, "本地规则通过")
-        }
-        val probe = HabitLlmClient.probeModelApi()
-        if (!probe.reachable) {
-            val detail = probe.error
-                ?.takeIf { it.isNotBlank() }
-                ?.let { "：$it" }
-                .orEmpty()
-            return ScheduleReviewResult(
-                true,
-                "审查服务暂不可用$detail，已按本地规则放行"
-            )
         }
         val system = """
 审查日程修改是否合理（防刷食物分、胡填时间/策略）。输出 JSON：
@@ -274,13 +258,14 @@ suggested_* 可空；不要编造未出现的包名。
             }
             val start = d.startMinutes
             val end = (d.endMinutes ?: (start + 60)).coerceAtLeast(start + 15)
+            val itemDate = d.date ?: date
             val key = DaySchedule.normalizeTitleKey(d.title)
             val (histAllow, histBlock) = DayScheduleStore.typicalPackages(key)
             val allow = d.suggestedAllow.ifEmpty { histAllow }
             val block = d.suggestedBlock.ifEmpty { histBlock }
             val draft = DaySchedule(
                 title = d.title,
-                date = date.toString(),
+                date = itemDate.toString(),
                 startMinutes = start,
                 endMinutes = end,
                 allowPackages = allow,
@@ -294,7 +279,7 @@ suggested_* 可空；不要编造未出现的包名。
                     d.title.hashCode()
                 )
             )
-            val review = reviewChange(draft, "create")
+            val review = reviewChange(draft, "create", DayScheduleStore.forDate(itemDate))
             if (!review.accept) {
                 return n to "「${d.title}」未通过审查：${review.reason}"
             }
@@ -304,10 +289,237 @@ suggested_* 可空；不要编造未出现的包名。
         return n to null
     }
 
+    /**
+     * 多日日程页自然语言指令：创建 / 改时间策略 / 完成 / 删除。
+     * 无 API Key 时用本地启发式在 [anchorDate] 创建日程。
+     */
+    fun applyInstruction(
+        instruction: String,
+        anchorDate: LocalDate,
+        rangeStart: LocalDate,
+        rangeEnd: LocalDate
+    ): ScheduleAiResult {
+        val text = instruction.trim()
+        if (text.isBlank()) {
+            return ScheduleAiResult(false, "请先输入要做的事")
+        }
+        val existing = DayScheduleStore.between(rangeStart, rangeEnd)
+        if (HabitPolicyStore.llmApiKey.isBlank()) {
+            return applyInstructionLocal(text, anchorDate, existing)
+        }
+        val system = """
+你是守伴多日日程助手。根据用户指令改日程，输出 JSON（不要 markdown）：
+{"ops":[{"op":"create|update|complete|delete","id":0,"title":"","date":"YYYY-MM-DD","start":"HH:mm","end":"HH:mm","allow":["包名"],"block":["包名"]}],"focus_date":"YYYY-MM-DD或空","summary":"一句话中文"}
+规则：
+- create 可不写 id；update/complete/delete 必须带已有 id
+- 缺时间则按常见时长补 60 分钟；未提日期时 date 用锚点日，提到「明天/下周一/某月某日」必须写成对应 YYYY-MM-DD
+- 可一次操作多天（创建多条不同 date、改非今天的条目）
+- allow/block 可空；不要编造未提及的包名
+- 不要在开场前 1 小时内改锁定中的条目的时间或策略（可 complete）
+        """.trimIndent()
+        val user = JSONObject()
+            .put("anchorDate", anchorDate.toString())
+            .put("rangeStart", rangeStart.toString())
+            .put("rangeEnd", rangeEnd.toString())
+            .put("instruction", text)
+            .put(
+                "existing",
+                JSONArray().also { arr ->
+                    existing.take(40).forEach { s ->
+                        arr.put(
+                            JSONObject()
+                                .put("id", s.id)
+                                .put("title", s.title)
+                                .put("date", s.date)
+                                .put("start", DayScheduleStore.minutesToHm(s.startMinutes))
+                                .put("end", DayScheduleStore.minutesToHm(s.endMinutes))
+                                .put("status", s.status.key)
+                                .put("locked", s.isPolicyLocked())
+                                .put("allow", JSONArray(s.allowPackages))
+                                .put("block", JSONArray(s.blockPackages))
+                        )
+                    }
+                }
+            )
+            .toString()
+        val result = HabitLlmClient.chatJson(system, user)
+        if (!result.ok || result.json == null) {
+            val fallback = applyInstructionLocal(text, anchorDate, existing)
+            return fallback.copy(
+                message = (result.error ?: "AI 暂不可用") + "；" + fallback.message
+            )
+        }
+        return applyOpsFromJson(result.json, existing, anchorDate)
+    }
+
+    private fun applyInstructionLocal(
+        text: String,
+        anchorDate: LocalDate,
+        existing: List<DaySchedule>
+    ): ScheduleAiResult {
+        // 完成：完成「标题」/ 勾掉 xxx
+        Regex("""(?:完成|勾掉|打勾)\s*[「"']?(.+?)[」"']?\s*$""").find(text)?.groupValues?.get(1)?.let { title ->
+            val hit = existing.firstOrNull {
+                it.status == DayScheduleStatus.PENDING &&
+                    (it.title.contains(title.trim()) || title.trim().contains(it.title))
+            }
+            if (hit != null) {
+                val (ok, msg) = DayScheduleStore.markDone(hit.id)
+                return ScheduleAiResult(ok, msg, runCatching { LocalDate.parse(hit.date) }.getOrNull())
+            }
+        }
+        // 删除
+        Regex("""(?:删除|去掉|取消)\s*[「"']?(.+?)[」"']?\s*$""").find(text)?.groupValues?.get(1)?.let { title ->
+            val hit = existing.firstOrNull {
+                it.title.contains(title.trim()) || title.trim().contains(it.title)
+            }
+            if (hit != null) {
+                DayScheduleStore.delete(hit.id)
+                return ScheduleAiResult(
+                    true,
+                    "已删除「${hit.title}」",
+                    runCatching { LocalDate.parse(hit.date) }.getOrNull()
+                )
+            }
+        }
+        val (drafts, warn) = parseFromFlashNote(text, anchorDate)
+        if (drafts.isEmpty()) {
+            return ScheduleAiResult(false, warn ?: "没理解指令，可写：明天 14:00 开会")
+        }
+        val ready = drafts.map { d ->
+            val start = d.startMinutes ?: (9 * 60)
+            d.copy(
+                startMinutes = start,
+                endMinutes = d.endMinutes ?: (start + 60),
+                needsTime = false
+            )
+        }
+        val (n, err) = commitDrafts(ready, anchorDate, text, DayScheduleSource.FLASH_AI)
+        val focus = ready.mapNotNull { it.date }.firstOrNull() ?: anchorDate
+        return when {
+            n > 0 && err == null -> ScheduleAiResult(true, "已创建 $n 条日程", focus)
+            n > 0 -> ScheduleAiResult(true, "已创建 $n 条；$err", focus)
+            else -> ScheduleAiResult(false, err ?: warn ?: "创建失败")
+        }
+    }
+
+    private fun applyOpsFromJson(
+        json: JSONObject,
+        existing: List<DaySchedule>,
+        anchorDate: LocalDate
+    ): ScheduleAiResult {
+        val ops = json.optJSONArray("ops") ?: JSONArray()
+        var changed = 0
+        var focus: LocalDate? = runCatching {
+            json.optString("focus_date").takeIf { it.isNotBlank() }?.let { LocalDate.parse(it) }
+        }.getOrNull()
+        val notes = mutableListOf<String>()
+        val byId = existing.associateBy { it.id }
+        for (i in 0 until ops.length()) {
+            val o = ops.optJSONObject(i) ?: continue
+            when (o.optString("op").lowercase()) {
+                "create" -> {
+                    val title = o.optString("title").trim()
+                    if (title.isBlank()) continue
+                    val date = parseOpDate(o.optString("date"), anchorDate)
+                    val start = DayScheduleStore.parseHm(o.optString("start")) ?: (9 * 60)
+                    val end = (DayScheduleStore.parseHm(o.optString("end")) ?: (start + 60))
+                        .coerceAtLeast(start + 15)
+                    val draft = DaySchedule(
+                        title = title,
+                        date = date.toString(),
+                        startMinutes = start,
+                        endMinutes = end,
+                        colorArgb = 0,
+                        allowPackages = jsonArrayStrings(o.optJSONArray("allow")),
+                        blockPackages = jsonArrayStrings(o.optJSONArray("block")),
+                        source = DayScheduleSource.FLASH_AI,
+                        rawNote = o.optString("title")
+                    )
+                    val review = reviewChange(draft, "create", DayScheduleStore.forDate(date))
+                    if (!review.accept) {
+                        notes += "创建「$title」拒绝：${review.reason}"
+                        continue
+                    }
+                    DayScheduleStore.insert(draft)
+                    changed++
+                    focus = date
+                }
+                "update" -> {
+                    val id = o.optLong("id", -1L)
+                    val cur = byId[id] ?: continue
+                    val date = parseOpDate(o.optString("date"), runCatching {
+                        LocalDate.parse(cur.date)
+                    }.getOrDefault(anchorDate))
+                    val start = DayScheduleStore.parseHm(o.optString("start")) ?: cur.startMinutes
+                    val end = (DayScheduleStore.parseHm(o.optString("end")) ?: cur.endMinutes)
+                        .coerceAtLeast(start + 15)
+                    val next = cur.copy(
+                        title = o.optString("title").trim().ifBlank { cur.title },
+                        date = date.toString(),
+                        startMinutes = start,
+                        endMinutes = end,
+                        allowPackages = if (o.has("allow")) {
+                            jsonArrayStrings(o.optJSONArray("allow"))
+                        } else cur.allowPackages,
+                        blockPackages = if (o.has("block")) {
+                            jsonArrayStrings(o.optJSONArray("block"))
+                        } else cur.blockPackages
+                    )
+                    val kind = when {
+                        cur.date != next.date || cur.startMinutes != next.startMinutes ||
+                            cur.endMinutes != next.endMinutes -> "time"
+                        cur.allowPackages != next.allowPackages ||
+                            cur.blockPackages != next.blockPackages -> "policy"
+                        else -> "title"
+                    }
+                    val review = reviewChange(next, kind, DayScheduleStore.forDate(date))
+                    if (!review.accept) {
+                        notes += "更新「${cur.title}」拒绝：${review.reason}"
+                        continue
+                    }
+                    if (!DayScheduleStore.update(next)) {
+                        notes += "更新「${cur.title}」失败（可能已锁定）"
+                        continue
+                    }
+                    changed++
+                    focus = date
+                }
+                "complete" -> {
+                    val id = o.optLong("id", -1L)
+                    val (ok, msg) = DayScheduleStore.markDone(id)
+                    if (ok) {
+                        changed++
+                        byId[id]?.date?.let {
+                            focus = runCatching { LocalDate.parse(it) }.getOrNull() ?: focus
+                        }
+                    } else {
+                        notes += msg
+                    }
+                }
+                "delete" -> {
+                    val id = o.optLong("id", -1L)
+                    if (byId.containsKey(id)) {
+                        DayScheduleStore.delete(id)
+                        changed++
+                    }
+                }
+            }
+        }
+        val summary = json.optString("summary").ifBlank {
+            if (changed > 0) "已应用 $changed 项修改" else "没有可执行的修改"
+        }
+        val message = if (notes.isEmpty()) summary else "$summary（${notes.take(2).joinToString("；")}）"
+        return ScheduleAiResult(changed > 0, message, focus)
+    }
+
+    private fun parseOpDate(raw: String?, fallback: LocalDate): LocalDate =
+        ScheduleDateParse.parse(raw, fallback) ?: fallback
+
     private fun rangesOverlap(a0: Int, a1: Int, b0: Int, b1: Int): Boolean =
         a0 < b1 && b0 < a1
 
-    private fun parseItems(json: JSONObject): List<ScheduleDraft> {
+    private fun parseItems(json: JSONObject, anchor: LocalDate): List<ScheduleDraft> {
         val arr = json.optJSONArray("items") ?: return emptyList()
         return buildList {
             for (i in 0 until arr.length()) {
@@ -317,9 +529,14 @@ suggested_* 可空；不要编造未出现的包名。
                 val start = DayScheduleStore.parseHm(o.optString("start").takeIf { it.isNotBlank() })
                 val end = DayScheduleStore.parseHm(o.optString("end").takeIf { it.isNotBlank() })
                 val needs = o.optBoolean("needs_time", start == null)
+                val itemDate = ScheduleDateParse.parse(
+                    o.optString("date").takeIf { it.isNotBlank() },
+                    anchor
+                ) ?: anchor
                 add(
                     ScheduleDraft(
                         title = title,
+                        date = itemDate,
                         startMinutes = start,
                         endMinutes = end,
                         needsTime = needs || start == null,
@@ -342,17 +559,28 @@ suggested_* 可空；不要编造未出现的包名。
     }
 
     private fun localHeuristicDrafts(text: String, date: LocalDate): List<ScheduleDraft> {
-        val lines = text.split(Regex("[\\n；;]+")).map { it.trim() }.filter { it.length >= 2 }
+        // 先按「明天…；后天…」等切段，再按换行/分号
+        val rough = text.split(Regex("""(?=明天|明日|后天|大后天|今天|今日|下周|本周|这周|\d{1,2}月\d{1,2}日|\d{4}[-/.年])"""))
+            .map { it.trim() }
+            .filter { it.length >= 2 }
+        val lines = if (rough.size > 1) {
+            rough
+        } else {
+            text.split(Regex("[\\n；;]+")).map { it.trim() }.filter { it.length >= 2 }
+        }
         val chunks = lines.ifEmpty { listOf(text.trim()) }
         return chunks.map { chunk ->
-            val start = DayScheduleStore.parseHm(chunk)
-                ?: Regex("""(\d{1,2})\s*点""").find(chunk)?.groupValues?.get(1)?.toIntOrNull()
+            val (itemDate, cleaned) = ScheduleDateParse.extractFromText(chunk, date)
+            val start = DayScheduleStore.parseHm(cleaned)
+                ?: Regex("""(\d{1,2})\s*点""").find(cleaned)?.groupValues?.get(1)?.toIntOrNull()
                     ?.takeIf { it in 0..23 }?.let { it * 60 }
-            val key = DaySchedule.normalizeTitleKey(chunk.take(24))
+            val title = cleaned.take(40).ifBlank { chunk.take(40) }
+            val key = DaySchedule.normalizeTitleKey(title)
             val typical = DayScheduleStore.typicalTime(key)
             val (allow, block) = DayScheduleStore.typicalPackages(key)
             ScheduleDraft(
-                title = chunk.take(40),
+                title = title,
+                date = itemDate ?: date,
                 startMinutes = start ?: typical?.first,
                 endMinutes = if (start != null) start + 60 else typical?.second,
                 needsTime = start == null && typical == null,

@@ -56,6 +56,14 @@
             android:theme="@style/Theme.DesktopPet.BigBang" />
 
         <activity
+            android:name=".FocusTimerActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleInstance"
+            android:taskAffinity="${applicationId}.focustimer"
+            android:theme="@style/Theme.DesktopPet.BigBang" />
+
+        <activity
             android:name=".FlashNoteActivity"
             android:exported="false"
             android:excludeFromRecents="true"
@@ -96,6 +104,21 @@
             android:noHistory="true"
             android:taskAffinity="${applicationId}.scheduletime"
             android:theme="@style/Theme.DesktopPet.Ghost" />
+
+        <activity
+            android:name=".ScheduleDatePickActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleInstance"
+            android:noHistory="true"
+            android:taskAffinity="${applicationId}.scheduledate"
+            android:theme="@style/Theme.DesktopPet.Ghost" />
+
+        <activity
+            android:name=".ScheduleActivity"
+            android:exported="false"
+            android:label="@string/schedule_page_title"
+            android:theme="@style/Theme.DesktopPet" />
 
         <activity
             android:name=".HabitGuardianActivity"

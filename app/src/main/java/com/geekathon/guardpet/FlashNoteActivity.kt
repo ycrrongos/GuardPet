@@ -4,6 +4,8 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
@@ -46,7 +48,9 @@ class FlashNoteActivity : AppCompatActivity() {
         updateScheduleDateLabel()
         binding.categoryGroup.setOnCheckedStateChangeListener { _, _ ->
             val schedule = binding.categorySchedule.isChecked
-            binding.scheduleDateRow.visibility = if (schedule) android.view.View.VISIBLE else android.view.View.GONE
+            binding.scheduleDateRow.visibility =
+                if (schedule) android.view.View.VISIBLE else android.view.View.GONE
+            binding.saveButton.setText(if (schedule) R.string.save_schedule else R.string.save_note)
         }
         binding.scheduleDateButton.setOnClickListener { pickDate() }
         binding.voiceButton.setOnClickListener { requestVoice() }
@@ -213,12 +217,50 @@ class FlashNoteActivity : AppCompatActivity() {
             Toast.makeText(this, R.string.flash_note_pick_category, Toast.LENGTH_SHORT).show()
             return
         }
+        // 日程：只进 DayScheduleStore，不进闪记列表
+        if (category == FlashNoteCategory.SCHEDULE) {
+            val noteText = text
+            val date = scheduleDate
+            Toast.makeText(this, R.string.schedule_parsing, Toast.LENGTH_SHORT).show()
+            binding.saveButton.isEnabled = false
+            Thread {
+                val (drafts, warn) = ScheduleLlmClient.parseFromFlashNote(noteText, date)
+                Handler(Looper.getMainLooper()).post {
+                    binding.saveButton.isEnabled = true
+                    if (warn != null) {
+                        Toast.makeText(this, warn, Toast.LENGTH_SHORT).show()
+                    }
+                    if (drafts.isEmpty()) {
+                        Toast.makeText(this, R.string.schedule_parse_empty, Toast.LENGTH_SHORT).show()
+                        return@post
+                    }
+                    if (drafts.any { it.needsTime || it.startMinutes == null }) {
+                        ScheduleHud.showFillTimes(this, drafts, noteText, date)
+                        finish()
+                    } else {
+                        Thread {
+                            val (n, err) = ScheduleLlmClient.commitDrafts(drafts, date, noteText)
+                            Handler(Looper.getMainLooper()).post {
+                                Toast.makeText(
+                                    this,
+                                    err ?: getString(R.string.schedule_created_count, n),
+                                    Toast.LENGTH_LONG
+                                ).show()
+                                finish()
+                            }
+                        }.start()
+                    }
+                }
+            }.start()
+            return
+        }
         FlashNoteStore.insert(
             FlashNote(
                 text = text,
                 category = category,
                 source = source,
-                scheduleDate = if (category == FlashNoteCategory.SCHEDULE) scheduleDate.toString() else null
+                scheduleDate = null,
+                color = if (category == FlashNoteCategory.TODO) 2 else 0
             )
         )
         Toast.makeText(this, R.string.flash_note_saved, Toast.LENGTH_SHORT).show()

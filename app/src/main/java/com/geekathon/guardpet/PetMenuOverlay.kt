@@ -50,6 +50,10 @@ class PetMenuOverlay(
             close()
             service.openFlashNoteList()
         }
+        binding.scheduleButton.setOnClickListener {
+            close()
+            service.openSchedulePage()
+        }
         binding.focusButton.setOnClickListener {
             close()
             service.openFocusTimer()

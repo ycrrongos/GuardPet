@@ -66,6 +66,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -73,6 +74,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.patrykandpatrick.vico.compose.cartesian.data.CartesianChartModelProducer
 import com.patrykandpatrick.vico.compose.cartesian.data.lineSeries
+import dev.pranav.reef.R
 import dev.pranav.reef.data.FocusSession
 import dev.pranav.reef.data.SessionType
 import dev.pranav.reef.util.FocusStats
@@ -102,7 +104,9 @@ internal fun formatFocusDuration(millis: Long): String {
 @Composable
 fun FocusStatsScreen(
     onBackPressed: () -> Unit,
-    onSessionClick: (String) -> Unit
+    onSessionClick: (String) -> Unit,
+    /** 嵌在守伴主页大卡片时隐藏返回键，标题用本地化「统计」。 */
+    embedded: Boolean = false
 ) {
     var range by remember { mutableStateOf(FocusRange.WEEKLY) }
     var offset by remember { mutableIntStateOf(0) }
@@ -191,13 +195,15 @@ fun FocusStatsScreen(
             MediumTopAppBar(
                 title = {
                     Text(
-                        "Focus Stats",
+                        if (embedded) stringResource(R.string.nav_stats) else "Focus Stats",
                         style = MaterialTheme.typography.titleLargeEmphasized,
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBackPressed, shapes = IconButtonDefaults.shapes()) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    if (!embedded) {
+                        IconButton(onClick = onBackPressed, shapes = IconButtonDefaults.shapes()) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),

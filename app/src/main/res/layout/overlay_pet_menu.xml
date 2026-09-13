@@ -61,6 +61,15 @@
         android:textSize="13sp" />
 
     <Button
+        android:id="@+id/scheduleButton"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_marginTop="4dp"
+        android:minWidth="0dp"
+        android:text="@string/schedule_page_title"
+        android:textSize="13sp" />
+
+    <Button
         android:id="@+id/focusButton"
         android:layout_width="match_parent"
         android:layout_height="40dp"

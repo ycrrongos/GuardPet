@@ -9,11 +9,19 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 
 class CalendarPermissionActivity : AppCompatActivity() {
+    companion object {
+        const val EXTRA_RETURN_TO_SCHEDULE = "return_to_schedule"
+    }
+
+    private var returnToSchedule = false
+
     private val launcher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         if (granted) {
-            ScheduleHud.onCalendarGranted()
+            if (!returnToSchedule) {
+                ScheduleHud.onCalendarGranted()
+            }
         } else {
             Toast.makeText(this, R.string.schedule_calendar_permission, Toast.LENGTH_LONG).show()
         }
@@ -22,10 +30,13 @@ class CalendarPermissionActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        returnToSchedule = intent.getBooleanExtra(EXTRA_RETURN_TO_SCHEDULE, false)
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CALENDAR) ==
             PackageManager.PERMISSION_GRANTED
         ) {
-            ScheduleHud.onCalendarGranted()
+            if (!returnToSchedule) {
+                ScheduleHud.onCalendarGranted()
+            }
             finish()
         } else {
             launcher.launch(Manifest.permission.READ_CALENDAR)

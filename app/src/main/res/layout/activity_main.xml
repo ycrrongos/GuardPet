@@ -365,6 +365,15 @@
                         app:drawableTint="@color/control_text" />
                 </LinearLayout>
 
+                <FrameLayout
+                    android:id="@+id/focusStatsCard"
+                    android:layout_width="match_parent"
+                    android:layout_height="520dp"
+                    android:layout_marginTop="20dp"
+                    android:background="@drawable/card_background"
+                    android:clipToPadding="false"
+                    android:padding="4dp" />
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -682,6 +691,14 @@
                     android:layout_height="50dp"
                     android:layout_marginTop="8dp"
                     android:text="@string/habit_guard_entry" />
+
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/schedulePageButton"
+                    style="@style/Widget.GuardPet.Button.secondary"
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/schedule_page_title" />
 
                 <androidx.appcompat.widget.AppCompatButton
                     android:id="@+id/reefSettingsButton"

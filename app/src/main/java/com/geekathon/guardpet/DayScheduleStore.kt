@@ -4,13 +4,10 @@ import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
-import android.graphics.Color
 import org.json.JSONArray
 import java.time.LocalDate
 import java.time.LocalTime
 import java.util.Locale
-import kotlin.math.abs
-import kotlin.random.Random
 
 enum class DayScheduleStatus(val key: String) {
     PENDING("pending"),
@@ -78,28 +75,6 @@ data class DaySchedule(
     }
 }
 
-object DayScheduleColor {
-    const val DONE_GREEN = 0xFF2E7D32.toInt()
-
-    /** 随机主色，远离完成绿；difficulty 0=浅易、1=深难。 */
-    fun randomPending(difficulty: Float, seed: Int = Random.nextInt()): Int {
-        val rnd = Random(seed)
-        var hue: Float
-        do {
-            hue = rnd.nextFloat() * 360f
-        } while (hueDistance(hue, 120f) < 55f) // 避开绿色附近
-        val sat = 0.45f + rnd.nextFloat() * 0.25f
-        val light = (0.72f - difficulty.coerceIn(0f, 1f) * 0.38f).coerceIn(0.32f, 0.78f)
-        val hsv = floatArrayOf(hue, sat, light)
-        return Color.HSVToColor(hsv)
-    }
-
-    private fun hueDistance(a: Float, b: Float): Float {
-        val d = abs(a - b) % 360f
-        return minOf(d, 360f - d)
-    }
-}
-
 object DayScheduleStore {
     private lateinit var helper: Helper
     private var appContext: Context? = null
@@ -117,6 +92,33 @@ object DayScheduleStore {
 
     fun today(today: LocalDate = LocalDate.now()): List<DaySchedule> =
         query("date=?", arrayOf(today.toString()), "start_minutes ASC, id ASC")
+
+    fun forDate(date: LocalDate): List<DaySchedule> = today(date)
+
+    /** [start, end] 闭区间，按日统计条数（月历圆点）。 */
+    fun countsBetween(start: LocalDate, end: LocalDate): Map<LocalDate, Int> {
+        if (end.isBefore(start)) return emptyMap()
+        val rows = query(
+            "date>=? AND date<=?",
+            arrayOf(start.toString(), end.toString()),
+            "date ASC, start_minutes ASC"
+        )
+        val map = linkedMapOf<LocalDate, Int>()
+        rows.forEach { s ->
+            val d = runCatching { LocalDate.parse(s.date) }.getOrNull() ?: return@forEach
+            map[d] = (map[d] ?: 0) + 1
+        }
+        return map
+    }
+
+    fun between(start: LocalDate, end: LocalDate): List<DaySchedule> {
+        if (end.isBefore(start)) return emptyList()
+        return query(
+            "date>=? AND date<=?",
+            arrayOf(start.toString(), end.toString()),
+            "date ASC, start_minutes ASC, id ASC"
+        )
+    }
 
     fun byId(id: Long): DaySchedule? =
         query("id=?", arrayOf(id.toString())).firstOrNull()
@@ -190,7 +192,8 @@ object DayScheduleStore {
             (existing.allowPackages != schedule.allowPackages ||
                 existing.blockPackages != schedule.blockPackages ||
                 existing.startMinutes != schedule.startMinutes ||
-                existing.endMinutes != schedule.endMinutes)
+                existing.endMinutes != schedule.endMinutes ||
+                existing.date != schedule.date)
         ) {
             return false
         }
