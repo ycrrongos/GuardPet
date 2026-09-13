@@ -11,6 +11,9 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.READ_CALENDAR" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
 
     <uses-feature
         android:name="android.hardware.microphone"
@@ -33,7 +36,8 @@
 
         <activity
             android:name=".MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -121,6 +125,25 @@
             android:theme="@style/Theme.DesktopPet" />
 
         <activity
+            android:name=".ScheduleCompleteActivity"
+            android:exported="false"
+            android:label="@string/schedule_complete_title"
+            android:theme="@style/Theme.DesktopPet"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".GuardAboutActivity"
+            android:exported="false"
+            android:label="@string/about_title"
+            android:theme="@style/Theme.DesktopPet" />
+
+        <activity
+            android:name=".FriendActivity"
+            android:exported="false"
+            android:label="@string/friend_title"
+            android:theme="@style/Theme.DesktopPet" />
+
+        <activity
             android:name=".HabitGuardianActivity"
             android:exported="true"
             android:label="@string/habit_guard_title">
@@ -135,6 +158,18 @@
             android:authorities="${applicationId}.guard-init"
             android:exported="false"
             android:initOrder="100" />
+
+        <receiver
+            android:name=".ScheduleEndReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".ScheduleBootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
 
         <service
             android:name=".PetService"

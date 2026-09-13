@@ -1,75 +1,149 @@
 package com.geekathon.guardpet
 
 import android.Manifest
+import android.app.usage.UsageStatsManager
 import android.content.Intent
+import android.content.pm.LauncherApps
 import android.content.pm.PackageManager
-import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
-import android.view.LayoutInflater
-import android.view.View
-import android.widget.AdapterView
-import android.widget.ArrayAdapter
-import android.widget.Spinner
-import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
-import com.geekathon.guardpet.databinding.ActivityMainBinding
+import androidx.core.content.edit
+import androidx.core.net.toUri
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.navigation.NavDestination.Companion.hasRoute
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
+import com.geekathon.guardpet.ui.GuardBottomNavBar
+import com.geekathon.guardpet.ui.GuardHomeScreen
+import com.geekathon.guardpet.ui.GuardSettingsFooter
+import com.geekathon.guardpet.ui.ScheduleTabScreen
 import dev.pranav.reef.PermissionsCheckActivity
-import dev.pranav.reef.ui.FocusStatsEmbedView
+import dev.pranav.reef.getDailyUsageForLastWeek
+import dev.pranav.reef.navigation.Screen
+import dev.pranav.reef.screens.CreateRoutineScreen
+import dev.pranav.reef.screens.DailyLimitScreen
+import dev.pranav.reef.screens.FocusSessionDetailScreen
+import dev.pranav.reef.screens.FocusStatsScreen
+import dev.pranav.reef.screens.HomeContent
+import dev.pranav.reef.screens.MindfulLaunchAppsScreen
+import dev.pranav.reef.screens.MindfulLaunchScreen
+import dev.pranav.reef.screens.RoutinesScreen
+import dev.pranav.reef.screens.SettingsContent
+import dev.pranav.reef.screens.UsageScreenWrapper
+import dev.pranav.reef.screens.WebsiteBlocklistScreen
+import dev.pranav.reef.screens.WhitelistScreenWrapper
+import dev.pranav.reef.timer.OverlayFocusSession
+import dev.pranav.reef.timer.TimerConfig
+import dev.pranav.reef.timer.TimerContent
+import dev.pranav.reef.timer.TimerStateManager
+import dev.pranav.reef.ui.ReefTheme
+import dev.pranav.reef.util.AppLimits
+import dev.pranav.reef.util.MindfulLaunchManager
+import dev.pranav.reef.util.ScreenUsageHelper
+import dev.pranav.reef.util.Whitelist
+import dev.pranav.reef.util.applyDefaults
 import dev.pranav.reef.util.checkAndRequestMissingPermissions
 import dev.pranav.reef.util.hasUsageStatsPermission
 import dev.pranav.reef.util.isAccessibilityServiceEnabledForBlocker
+import dev.pranav.reef.util.isBlockerServiceOperational
+import dev.pranav.reef.util.isPrefsInitialized
+import dev.pranav.reef.util.prefs
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
+/**
+ * 守伴主页：五栏 MD3（首页 / 日程 / 统计 / 专注 / 设置）。
+ * 专注计时走 [OverlayFocusSession]，不启动 FocusModeService。
+ */
 class MainActivity : AppCompatActivity() {
-    private lateinit var binding: ActivityMainBinding
     private lateinit var assets: PetAssetRepository
     private lateinit var settings: PetSettings
+    private val focusSession = OverlayFocusSession()
+
     private var hasPromptedPermissions = false
     private var skipPermissionPromptOnce = false
-    private var stopFlashObserve: (() -> Unit)? = null
-    private var settingsExpanded = false
-    private var focusStatsEmbed: FocusStatsEmbedView? = null
+    private var pendingFocusModeStart = false
+    private var shouldNavigateToTimer = false
+    private var shouldNavigateToSettings = false
+
+    private val soundPickerLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                result.data?.getParcelableExtra(
+                    android.media.RingtoneManager.EXTRA_RINGTONE_PICKED_URI,
+                    android.net.Uri::class.java
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                result.data?.getParcelableExtra(android.media.RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
+            }
+            uri?.let { prefs.edit { putString("pomodoro_sound", it.toString()) } }
+        }
+    }
+
+    private val usageStatsManager by lazy { getSystemService(USAGE_STATS_SERVICE) as UsageStatsManager }
+    private val launcherApps by lazy { getSystemService(LAUNCHER_APPS_SERVICE) as LauncherApps }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-        WindowCompat.setDecorFitsSystemWindows(window, false)
-        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, insets ->
-            val bars = insets.getInsets(
-                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
-            )
-            view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
-            insets
-        }
-        ViewCompat.requestApplyInsets(binding.root)
-        binding.contentColumn.layoutParams = binding.contentColumn.layoutParams.apply {
-            width = minOf(
-                resources.displayMetrics.widthPixels,
-                (600 * resources.displayMetrics.density).toInt()
-            )
-        }
+        (application as dev.pranav.reef.App).initializeAfterUnlock()
+        enableEdgeToEdge()
+        applyDefaults()
+        addExceptions()
+
         assets = PetAssetRepository(this)
         settings = PetSettings(this)
 
-        bindFocusStatsCard()
+        shouldNavigateToTimer = intent?.getBooleanExtra(EXTRA_NAVIGATE_TIMER, false) == true ||
+            intent?.getBooleanExtra("navigate_to_timer", false) == true
+        shouldNavigateToSettings = intent?.getBooleanExtra(EXTRA_NAVIGATE_SETTINGS, false) == true ||
+            intent?.getBooleanExtra("navigate_to_settings", false) == true
 
-        binding.petPreview.fitPreviewToCanvas()
-        binding.petPreview.show(assets.randomFileFor(PetState.HAPPY))
-        binding.startButton.setOnClickListener { requestPermissionsAndStart() }
-        binding.stopButton.setOnClickListener { stopPet() }
-        binding.petButton.setOnClickListener { changeMood(PetState.TOUCH, 5) }
-        binding.sleepButton.setOnClickListener { sendState(PetState.SLEEP) }
-        binding.feedButton.setOnClickListener { feedPet() }
-        binding.todoButton.setOnClickListener {
-            startActivity(Intent(this, PetPanelActivity::class.java))
-        }
         if (intent?.getBooleanExtra(EXTRA_AUTO_EXTRACT, false) == true) {
             scheduleAutoExtract()
         }
@@ -85,107 +159,575 @@ class MainActivity : AppCompatActivity() {
                 }
             )
         }
-        settingsExpanded = savedInstanceState?.getBoolean(KEY_SETTINGS_EXPANDED) ?: false
-        updateSettingsExpansion()
-        binding.settingsToggle.setOnClickListener {
-            settingsExpanded = !settingsExpanded
-            updateSettingsExpansion()
+
+        focusSession.onFocusStarted = { HabitRewardTracker.onFocusSessionStarted() }
+        focusSession.onFocusCompleted = {
+            HabitRewardTracker.onFocusSessionCompleted(this)
+            Toast.makeText(this, R.string.focus_complete, Toast.LENGTH_LONG).show()
         }
-        binding.freeWalkSwitch.isChecked = settings.edgeWalkEnabled
-        binding.freeWalkSwitch.setOnCheckedChangeListener { _, enabled ->
-            settings.edgeWalkEnabled = enabled
-            sendServiceAction(PetService.ACTION_REFRESH_SETTINGS)
-        }
-        binding.petSizeSeek.progress = ((settings.petScale - 0.55f) / 0.9f * 100f).toInt()
-        binding.petSizeSeek.setOnSeekBarChangeListener(simpleSeekBarListener { progress ->
-            settings.petScale = 0.55f + progress / 100f * 0.9f
-            updateSettingLabels()
-            sendServiceAction(PetService.ACTION_REFRESH_SETTINGS)
-        })
-        binding.walkSpeedSeek.progress = ((settings.walkSpeed - WALK_SPEED_MIN) * 100 /
-            (WALK_SPEED_MAX - WALK_SPEED_MIN)).coerceIn(0, 100)
-        binding.walkSpeedSeek.setOnSeekBarChangeListener(simpleSeekBarListener { progress ->
-            settings.walkSpeed = WALK_SPEED_MIN + progress * (WALK_SPEED_MAX - WALK_SPEED_MIN) / 100
-            updateSettingLabels()
-            sendServiceAction(PetService.ACTION_REFRESH_SETTINGS)
-        })
-        bindGestureShortcut(binding.gestureSingleTap, PetGesture.SINGLE_TAP)
-        bindGestureShortcut(binding.gestureDoubleTap, PetGesture.DOUBLE_TAP)
-        bindGestureShortcut(binding.gestureShake, PetGesture.SHAKE)
-        bindGestureShortcut(binding.gestureDoubleTapHold, PetGesture.DOUBLE_TAP_HOLD)
-        bindGestureShortcut(binding.gestureDragPhoneShake, PetGesture.DRAG_PHONE_SHAKE)
-        binding.focusButton.setOnClickListener {
-            if (!PetService.isRunning) {
-                Toast.makeText(this, R.string.start_pet_first, Toast.LENGTH_SHORT).show()
-            } else {
-                sendServiceAction(PetService.ACTION_OPEN_TIMER)
+
+        setContent {
+            val navController = rememberNavController()
+            val overlayUi by focusSession.state.collectAsState()
+            val timerState by TimerStateManager.state.collectAsState()
+            val navBackStackEntry by navController.currentBackStackEntryAsState()
+            val currentDestination = navBackStackEntry?.destination
+            val showAccessibilityDialog = remember { mutableStateOf(false) }
+            var isZenMode by rememberSaveable { mutableStateOf(false) }
+
+            var petTick by remember { mutableIntStateOf(0) }
+            var previewState by remember { mutableStateOf(PetState.HAPPY) }
+            var petRunning by remember { mutableStateOf(PetService.isRunning) }
+
+            val whitelistedCount =
+                remember { Whitelist.getWhitelistedLaunchableCount(launcherApps) }
+            val mindfulAppsCount = remember { MindfulLaunchManager.getMindfulApps().size }
+            val isMindfulLaunchEnabled = remember { MindfulLaunchManager.isEnabled() }
+
+            val selectedNavIndex = remember(currentDestination) {
+                when {
+                    currentDestination?.hasRoute<Screen.Home>() == true -> 0
+                    currentDestination?.hasRoute<Screen.Schedule>() == true -> 1
+                    currentDestination?.hasRoute<Screen.Usage>() == true -> 2
+                    currentDestination?.hasRoute<Screen.DailyLimit>() == true -> 2
+                    currentDestination?.hasRoute<Screen.FocusHub>() == true -> 3
+                    currentDestination?.hasRoute<Screen.Timer>() == true -> 3
+                    currentDestination?.hasRoute<Screen.FocusStats>() == true -> 3
+                    currentDestination?.hasRoute<Screen.Routines>() == true -> 3
+                    currentDestination?.hasRoute<Screen.Whitelist>() == true -> 3
+                    currentDestination?.hasRoute<Screen.WebsiteBlocklist>() == true -> 3
+                    currentDestination?.hasRoute<Screen.MindfulLaunch>() == true -> 3
+                    currentDestination?.hasRoute<Screen.MindfulLaunchApps>() == true -> 3
+                    currentDestination?.hasRoute<Screen.Settings>() == true -> 4
+                    else -> -1
+                }
+            }
+
+            val showBottomBar = remember(currentDestination, isZenMode) {
+                !isZenMode && (
+                    currentDestination?.hasRoute<Screen.Home>() == true ||
+                        currentDestination?.hasRoute<Screen.Schedule>() == true ||
+                        currentDestination?.hasRoute<Screen.Usage>() == true ||
+                        currentDestination?.hasRoute<Screen.FocusHub>() == true ||
+                        currentDestination?.hasRoute<Screen.Timer>() == true ||
+                        currentDestination?.hasRoute<Screen.Settings>() == true ||
+                        currentDestination?.hasRoute<Screen.Whitelist>() == true ||
+                        currentDestination?.hasRoute<Screen.Routines>() == true
+                    )
+            }
+
+            LaunchedEffect(timerState.isRunning, timerState.isPaused) {
+                if (!timerState.isRunning && !timerState.isPaused) {
+                    isZenMode = false
+                }
+            }
+
+            LaunchedEffect(shouldNavigateToTimer, shouldNavigateToSettings) {
+                if (shouldNavigateToTimer) {
+                    navController.navigate(Screen.FocusHub) { launchSingleTop = true }
+                    navController.navigate(Screen.Timer) { launchSingleTop = true }
+                    shouldNavigateToTimer = false
+                } else if (shouldNavigateToSettings) {
+                    navController.navigate(Screen.Settings) { launchSingleTop = true }
+                    shouldNavigateToSettings = false
+                }
+            }
+
+            var dailyUsageText by remember { mutableStateOf("0m today") }
+            LaunchedEffect(Unit) {
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    val todayUsage = ScreenUsageHelper.fetchAppUsageTodayTillNow(usageStatsManager)
+                    val totalUsageMinutes = todayUsage.values.sum() / 60
+                    val hours = totalUsageMinutes / 60
+                    val minutes = totalUsageMinutes % 60
+                    val usageText = when {
+                        hours > 0 && minutes > 0 ->
+                            getString(dev.pranav.reef.R.string.hour_min_short_suffix, hours, minutes) +
+                                " " + getString(dev.pranav.reef.R.string.today)
+                        hours > 0 ->
+                            getString(dev.pranav.reef.R.string.hours_short_format, hours) +
+                                " " + getString(dev.pranav.reef.R.string.today)
+                        minutes > 0 ->
+                            getString(dev.pranav.reef.R.string.minutes_short_format, minutes) +
+                                " " + getString(dev.pranav.reef.R.string.today)
+                        else -> getString(dev.pranav.reef.R.string.less_than_one_minute)
+                    }
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                        dailyUsageText = usageText
+                    }
+                }
+            }
+
+            val statusMessage = when {
+                !Settings.canDrawOverlays(this@MainActivity) -> getString(R.string.status_permission)
+                petRunning -> getString(R.string.status_running)
+                else -> getString(R.string.status_stopped)
+            }
+            val badgeRes = if (petRunning) R.string.badge_running else R.string.badge_stopped
+            val heroMessageRes = when (previewState) {
+                PetState.FEED -> R.string.hero_message_feed
+                PetState.TOUCH -> R.string.hero_message_pet
+                PetState.SLEEP -> R.string.hero_message_sleep
+                else -> if (petRunning) R.string.hero_message_running else R.string.hero_message_idle
+            }
+
+            ReefTheme {
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    bottomBar = {
+                        AnimatedVisibility(
+                            visible = showBottomBar,
+                            enter = fadeIn() + slideInVertically { it },
+                            exit = fadeOut() + slideOutVertically { it }
+                        ) {
+                            GuardBottomNavBar(
+                                selectedItem = selectedNavIndex,
+                                onItemSelected = { index ->
+                                    val options = androidx.navigation.navOptions {
+                                        popUpTo(navController.graph.startDestinationId) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                    when (index) {
+                                        0 -> navController.navigate(Screen.Home) {
+                                            popUpTo(navController.graph.startDestinationId) {
+                                                saveState = true
+                                            }
+                                            launchSingleTop = true
+                                            restoreState = false
+                                        }
+                                        1 -> navController.navigate(Screen.Schedule, options)
+                                        2 -> navController.navigate(Screen.Usage, options)
+                                        3 -> navController.navigate(Screen.FocusHub, options)
+                                        4 -> navController.navigate(Screen.Settings, options)
+                                    }
+                                }
+                            )
+                        }
+                    }
+                ) { innerPadding ->
+                    NavHost(
+                        navController = navController,
+                        startDestination = Screen.Home,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(
+                                PaddingValues(
+                                    innerPadding.calculateStartPadding(LayoutDirection.Ltr),
+                                    0.dp,
+                                    innerPadding.calculateEndPadding(LayoutDirection.Ltr),
+                                    innerPadding.calculateBottomPadding()
+                                )
+                            ),
+                        enterTransition = {
+                            fadeIn(animationSpec = tween(300)) +
+                                slideIntoContainer(
+                                    towards = AnimatedContentTransitionScope.SlideDirection.Start,
+                                    animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f)
+                                )
+                        },
+                        exitTransition = {
+                            fadeOut(animationSpec = tween(300)) +
+                                slideOutOfContainer(
+                                    towards = AnimatedContentTransitionScope.SlideDirection.Start,
+                                    animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f)
+                                )
+                        },
+                        popEnterTransition = {
+                            fadeIn(animationSpec = tween(300)) +
+                                slideIntoContainer(
+                                    towards = AnimatedContentTransitionScope.SlideDirection.End,
+                                    animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f)
+                                )
+                        },
+                        popExitTransition = {
+                            fadeOut(animationSpec = tween(300)) +
+                                slideOutOfContainer(
+                                    towards = AnimatedContentTransitionScope.SlideDirection.End,
+                                    animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f)
+                                )
+                        }
+                    ) {
+                        composable<Screen.Home> {
+                            GuardHomeScreen(
+                                assets = assets,
+                                settings = settings,
+                                petRunning = petRunning,
+                                statusMessage = statusMessage,
+                                badgeRes = badgeRes,
+                                heroMessageRes = heroMessageRes,
+                                previewState = previewState,
+                                onStartCompanion = {
+                                    requestPermissionsAndStart {
+                                        petRunning = PetService.isRunning
+                                        petTick++
+                                    }
+                                },
+                                onStopCompanion = {
+                                    stopPet()
+                                    petRunning = false
+                                    previewState = PetState.HAPPY
+                                    petTick++
+                                },
+                                onFeed = {
+                                    feedPet {
+                                        previewState = PetState.FEED
+                                        petTick++
+                                    }
+                                },
+                                onPet = {
+                                    changeMood(PetState.TOUCH, 5) {
+                                        previewState = PetState.TOUCH
+                                        petTick++
+                                    }
+                                },
+                                onSleep = {
+                                    sendState(PetState.SLEEP) {
+                                        previewState = PetState.SLEEP
+                                        petTick++
+                                    }
+                                },
+                                onOpenTodos = {
+                                    startActivity(
+                                        Intent(this@MainActivity, PetPanelActivity::class.java)
+                                    )
+                                },
+                                onOpenHabit = {
+                                    startActivity(
+                                        Intent(this@MainActivity, HabitGuardianActivity::class.java)
+                                    )
+                                },
+                                onOpenFlashComposer = { openFlashNoteComposer() },
+                                tick = petTick
+                            )
+                        }
+
+                        composable<Screen.Schedule> {
+                            ScheduleTabScreen()
+                        }
+
+                        composable<Screen.FocusHub> {
+                            HomeContent(
+                                onNavigateToTimer = { navController.navigate(Screen.Timer) },
+                                onNavigateToUsage = { navController.navigate(Screen.Usage) },
+                                onNavigateToRoutines = { navController.navigate(Screen.Routines) },
+                                onNavigateToWhitelist = {
+                                    if (prefs.getBoolean("focus_mode", false) &&
+                                        TimerStateManager.state.value.isStrictMode
+                                    ) {
+                                        Toast.makeText(
+                                            baseContext,
+                                            "Wait for focus mode to end",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    } else {
+                                        navController.navigate(Screen.Whitelist)
+                                    }
+                                },
+                                onNavigateToWebsiteBlocklist = {
+                                    navController.navigate(Screen.WebsiteBlocklist)
+                                },
+                                onNavigateToMindfulLaunch = {
+                                    navController.navigate(Screen.MindfulLaunch)
+                                },
+                                onNavigateToIntro = { },
+                                onRequestAccessibility = {
+                                    pendingFocusModeStart = true
+                                    showAccessibilityDialog.value = true
+                                },
+                                currentTimeLeft = overlayUi.timeLeft,
+                                currentTimerState = overlayUi.timerState,
+                                whitelistedAppsCount = whitelistedCount,
+                                mindfulAppsCount = mindfulAppsCount,
+                                isMindfulLaunchEnabled = isMindfulLaunchEnabled,
+                                dailyUsageText = dailyUsageText,
+                                skipPromos = true,
+                                title = getString(R.string.nav_focus)
+                            )
+                        }
+
+                        composable<Screen.Timer> {
+                            TimerContent(
+                                navController = navController,
+                                isTimerRunning = overlayUi.isRunning,
+                                isPaused = overlayUi.isPaused,
+                                currentTimeLeft = overlayUi.timeLeft,
+                                currentTimerState = overlayUi.timerState,
+                                isStrictMode = overlayUi.strictMode,
+                                isZenMode = isZenMode,
+                                onZenModeChange = {
+                                    isZenMode = it
+                                    focusSession.setZenMode(it)
+                                },
+                                onStartTimer = { config -> startOverlayFocus(config) },
+                                onPauseTimer = { focusSession.pause() },
+                                onResumeTimer = { focusSession.resume() },
+                                onCancelTimer = { focusSession.cancel() },
+                                onRestartTimer = { focusSession.restart() },
+                                onTakeBreak = { focusSession.takeBreak() }
+                            )
+                        }
+
+                        composable<Screen.Usage> {
+                            UsageScreenWrapper(
+                                context = this@MainActivity,
+                                usageStatsManager = usageStatsManager,
+                                launcherApps = launcherApps,
+                                packageManager = packageManager,
+                                currentPackageName = packageName,
+                                onBackPressed = {
+                                    if (!navController.popBackStack()) {
+                                        navController.navigate(Screen.Home) { launchSingleTop = true }
+                                    }
+                                },
+                                onAppClick = { appUsageStats ->
+                                    navController.navigate(
+                                        Screen.DailyLimit(appUsageStats.applicationInfo.packageName)
+                                    )
+                                }
+                            )
+                        }
+
+                        composable<Screen.DailyLimit> { backStackEntry ->
+                            val route = backStackEntry.toRoute<Screen.DailyLimit>()
+                            val pkgName = route.packageName
+                            val application =
+                                remember(pkgName) { packageManager.getApplicationInfo(pkgName, 0) }
+                            val appIcon = remember(application) {
+                                packageManager.getApplicationIcon(application)
+                            }
+                            val appName = remember(application) {
+                                packageManager.getApplicationLabel(application).toString()
+                            }
+                            val existingLimitMinutes =
+                                remember(pkgName) { (AppLimits.getLimit(pkgName) / 60000).toInt() }
+                            var weekOffset by remember { mutableIntStateOf(0) }
+                            val dailyData by remember(pkgName, weekOffset) {
+                                derivedStateOf {
+                                    getDailyUsageForLastWeek(pkgName, usageStatsManager, weekOffset)
+                                }
+                            }
+                            DailyLimitScreen(
+                                appName = appName,
+                                appIcon = appIcon,
+                                packageName = pkgName,
+                                existingLimitMinutes = existingLimitMinutes,
+                                dailyData = dailyData,
+                                onSave = { minutes ->
+                                    AppLimits.setLimit(pkgName, minutes)
+                                    AppLimits.save()
+                                    navController.popBackStack()
+                                },
+                                onRemove = {
+                                    AppLimits.removeLimit(pkgName)
+                                    AppLimits.save()
+                                    navController.popBackStack()
+                                },
+                                onBackPressed = { navController.popBackStack() },
+                                weekOffset = weekOffset,
+                                onWeekChange = { newOffset -> weekOffset = newOffset },
+                                canGoPrevious = weekOffset > -4
+                            )
+                        }
+
+                        composable<Screen.Routines> {
+                            RoutinesScreen(
+                                onBackPress = { navController.popBackStack() },
+                                onCreateRoutine = {
+                                    navController.navigate(Screen.CreateRoutine(null))
+                                },
+                                onEditRoutine = { routine ->
+                                    navController.navigate(Screen.CreateRoutine(routine.id))
+                                }
+                            )
+                        }
+
+                        composable<Screen.CreateRoutine> { backStackEntry ->
+                            val route = backStackEntry.toRoute<Screen.CreateRoutine>()
+                            CreateRoutineScreen(
+                                routineId = route.routineId,
+                                onBackPressed = { navController.popBackStack() },
+                                onSaveComplete = { navController.popBackStack() }
+                            )
+                        }
+
+                        composable<Screen.Whitelist> {
+                            WhitelistScreenWrapper(
+                                navController = navController,
+                                launcherApps = launcherApps,
+                                packageManager = packageManager,
+                                currentPackageName = packageName
+                            )
+                        }
+
+                        composable<Screen.Settings> {
+                            SettingsContent(
+                                onSoundPicker = { launchSoundPicker() },
+                                mainFooter = {
+                                    GuardSettingsFooter(
+                                        settings = settings,
+                                        onRefreshSettings = {
+                                            sendServiceAction(PetService.ACTION_REFRESH_SETTINGS)
+                                            petTick++
+                                        },
+                                        tick = petTick
+                                    )
+                                }
+                            )
+                        }
+
+                        composable<Screen.FocusStats> {
+                            FocusStatsScreen(
+                                onBackPressed = { navController.popBackStack() },
+                                onSessionClick = { id ->
+                                    navController.navigate(Screen.FocusSessionDetail(id))
+                                }
+                            )
+                        }
+
+                        composable<Screen.FocusSessionDetail> { backStackEntry ->
+                            val route = backStackEntry.toRoute<Screen.FocusSessionDetail>()
+                            FocusSessionDetailScreen(
+                                sessionId = route.sessionId,
+                                onBackPressed = { navController.popBackStack() }
+                            )
+                        }
+
+                        composable<Screen.WebsiteBlocklist> {
+                            WebsiteBlocklistScreen(onBackPressed = { navController.popBackStack() })
+                        }
+
+                        composable<Screen.MindfulLaunch> {
+                            MindfulLaunchScreen(
+                                onBackPressed = { navController.popBackStack() },
+                                onNavigateToApps = {
+                                    navController.navigate(Screen.MindfulLaunchApps)
+                                }
+                            )
+                        }
+
+                        composable<Screen.MindfulLaunchApps> {
+                            MindfulLaunchAppsScreen(
+                                onBackPressed = { navController.popBackStack() }
+                            )
+                        }
+                    }
+
+                    if (showAccessibilityDialog.value) {
+                        val accessibilityEnabled = isAccessibilityServiceEnabledForBlocker()
+                        AlertDialog(
+                            onDismissRequest = { showAccessibilityDialog.value = false },
+                            title = {
+                                Text(stringResource(dev.pranav.reef.R.string.accessibility_service))
+                            },
+                            text = {
+                                Text(
+                                    stringResource(
+                                        if (accessibilityEnabled) {
+                                            dev.pranav.reef.R.string.accessibility_service_not_running_description
+                                        } else {
+                                            dev.pranav.reef.R.string.accessibility_service_description
+                                        }
+                                    )
+                                )
+                            },
+                            confirmButton = {
+                                TextButton(
+                                    onClick = {
+                                        showAccessibilityDialog.value = false
+                                        startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                                    },
+                                    shapes = ButtonDefaults.shapes()
+                                ) {
+                                    Text(stringResource(dev.pranav.reef.R.string.open_accessibility_settings))
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(
+                                    onClick = { showAccessibilityDialog.value = false },
+                                    shapes = ButtonDefaults.shapes()
+                                ) {
+                                    Text(stringResource(dev.pranav.reef.R.string.cancel))
+                                }
+                            }
+                        )
+                    }
+                }
             }
         }
-        binding.habitGuardButton.setOnClickListener {
-            startActivity(Intent(this, HabitGuardianActivity::class.java))
-        }
-        binding.schedulePageButton.setOnClickListener {
-            startActivity(Intent(this, ScheduleActivity::class.java))
-        }
-        binding.reefSettingsButton.setOnClickListener { FocusLauncher.openSettings(this) }
-        binding.flashNoteButton.setOnClickListener { openFlashNoteComposer() }
-        binding.focusAttribution.setOnClickListener { FocusLauncher.openAbout(this) }
-
-        updateValues()
-        updateSettingLabels()
-        updateStatus()
-        renderFlashNotes()
     }
 
-    override fun onDestroy() {
-        focusStatsEmbed?.release()
-        focusStatsEmbed = null
-        super.onDestroy()
-    }
-
-    private fun bindFocusStatsCard() {
-        val host = binding.focusStatsCard
-        host.removeAllViews()
-        val embed = FocusStatsEmbedView(this)
-        host.addView(
-            embed,
-            android.widget.FrameLayout.LayoutParams(
-                android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
-                android.widget.FrameLayout.LayoutParams.MATCH_PARENT
-            )
-        )
-        embed.bindToHost(this, this, this, this)
-        focusStatsEmbed = embed
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (intent.getBooleanExtra(EXTRA_NAVIGATE_TIMER, false) ||
+            intent.getBooleanExtra("navigate_to_timer", false)
+        ) {
+            shouldNavigateToTimer = true
+        }
+        if (intent.getBooleanExtra(EXTRA_NAVIGATE_SETTINGS, false) ||
+            intent.getBooleanExtra("navigate_to_settings", false)
+        ) {
+            shouldNavigateToSettings = true
+        }
     }
 
     override fun onResume() {
         super.onResume()
-        if (::settings.isInitialized) {
-            updateValues()
-            binding.freeWalkSwitch.isChecked = settings.edgeWalkEnabled
-            updateStatus()
-            renderFlashNotes()
-        }
-        stopFlashObserve?.invoke()
-        stopFlashObserve = FlashNoteStore.observe { renderFlashNotes() }
         if (!hasPromptedPermissions) {
             hasPromptedPermissions = true
             if (!skipPermissionPromptOnce) {
-                checkAndRequestMissingPermissions()
+                lifecycleScope.launch {
+                    delay(400)
+                    if (lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                        checkAndRequestMissingPermissions()
+                    }
+                }
             }
             skipPermissionPromptOnce = false
         }
+        if (pendingFocusModeStart && isBlockerServiceOperational()) {
+            pendingFocusModeStart = false
+        }
     }
 
-    override fun onPause() {
-        stopFlashObserve?.invoke()
-        stopFlashObserve = null
-        super.onPause()
+    override fun onDestroy() {
+        focusSession.release()
+        super.onDestroy()
     }
 
-    override fun onSaveInstanceState(outState: Bundle) {
-        outState.putBoolean(KEY_SETTINGS_EXPANDED, settingsExpanded)
-        super.onSaveInstanceState(outState)
+    private fun startOverlayFocus(config: TimerConfig) {
+        if (!isPrefsInitialized) {
+            Toast.makeText(this, R.string.focus_not_ready, Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (!focusSession.start(config)) {
+            Toast.makeText(this, R.string.focus_not_ready, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun launchSoundPicker() {
+        val intent = Intent(android.media.RingtoneManager.ACTION_RINGTONE_PICKER).apply {
+            putExtra(
+                android.media.RingtoneManager.EXTRA_RINGTONE_TYPE,
+                android.media.RingtoneManager.TYPE_NOTIFICATION
+            )
+            putExtra(
+                android.media.RingtoneManager.EXTRA_RINGTONE_TITLE,
+                getString(dev.pranav.reef.R.string.select_transition_sound)
+            )
+            val currentSound = prefs.getString("pomodoro_sound", null)
+            if (!currentSound.isNullOrEmpty()) {
+                putExtra(
+                    android.media.RingtoneManager.EXTRA_RINGTONE_EXISTING_URI,
+                    currentSound.toUri()
+                )
+            }
+        }
+        soundPickerLauncher.launch(intent)
     }
 
     private fun openFlashNoteComposer() {
@@ -196,7 +738,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun requestPermissionsAndStart() {
+    private fun requestPermissionsAndStart(onDone: () -> Unit) {
         if (!Settings.canDrawOverlays(this) ||
             !hasUsageStatsPermission() ||
             !isAccessibilityServiceEnabledForBlocker()
@@ -204,7 +746,6 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, PermissionsCheckActivity::class.java))
             return
         }
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
             PackageManager.PERMISSION_GRANTED
@@ -212,27 +753,22 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, PermissionsCheckActivity::class.java))
             return
         }
-        startPetService()
+        startPetService(onDone)
     }
 
-    private fun startPetService() {
+    private fun startPetService(onDone: () -> Unit = {}) {
         if (!Settings.canDrawOverlays(this)) {
             Toast.makeText(this, R.string.overlay_permission_required, Toast.LENGTH_LONG).show()
-            updateStatus(false)
             return
         }
         runCatching {
             ContextCompat.startForegroundService(this, Intent(this, PetService::class.java))
         }.onSuccess {
-            updateStatus(true)
-            binding.root.postDelayed({
-                if (!PetService.isRunning) {
-                    updateStatus(false)
-                    showLastStartError()
-                }
+            window.decorView.postDelayed({
+                if (!PetService.isRunning) showLastStartError()
+                onDone()
             }, SERVICE_START_CHECK_DELAY_MS)
         }.onFailure {
-            updateStatus(false)
             Toast.makeText(
                 this,
                 getString(R.string.start_failed, it.localizedMessage ?: it.javaClass.simpleName),
@@ -249,11 +785,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun stopPet() {
         stopService(Intent(this, PetService::class.java))
-        binding.petPreview.show(assets.randomFileFor(PetState.HAPPY))
-        updateStatus(false)
     }
 
-    private fun feedPet() {
+    private fun feedPet(onChanged: () -> Unit) {
         if (settings.foodCount <= 0) {
             Toast.makeText(this, R.string.no_food, Toast.LENGTH_SHORT).show()
             return
@@ -261,17 +795,15 @@ class MainActivity : AppCompatActivity() {
         settings.foodCount -= 1
         settings.hunger += 20
         settings.mood += 3
-        updateValues()
-        sendState(PetState.FEED)
+        sendState(PetState.FEED, onChanged)
     }
 
-    private fun changeMood(state: PetState, delta: Int) {
+    private fun changeMood(state: PetState, delta: Int, onChanged: () -> Unit) {
         settings.mood += delta
-        updateValues()
-        sendState(state)
+        sendState(state, onChanged)
     }
 
-    private fun sendState(state: PetState) {
+    private fun sendState(state: PetState, onChanged: () -> Unit = {}) {
         if (!PetService.isRunning) {
             Toast.makeText(this, R.string.start_pet_first, Toast.LENGTH_SHORT).show()
             return
@@ -281,168 +813,15 @@ class MainActivity : AppCompatActivity() {
                 .setAction(PetService.ACTION_SET_STATE)
                 .putExtra(PetService.EXTRA_STATE, state.key)
         )
-        binding.petPreview.show(assets.randomFileFor(state))
-        binding.companionMessage.setText(
-            when (state) {
-                PetState.FEED -> R.string.hero_message_feed
-                PetState.TOUCH -> R.string.hero_message_pet
-                PetState.SLEEP -> R.string.hero_message_sleep
-                else -> R.string.hero_message_running
-            }
-        )
+        onChanged()
     }
-
-    private fun updateValues() {
-        val mood = settings.mood
-        val hunger = settings.hunger
-        val food = settings.foodCount
-        binding.moodText.text = mood.toString()
-        binding.moodText.contentDescription = getString(R.string.mood_accessibility, mood)
-        binding.moodProgress.progress = mood
-        binding.hungerText.text = hunger.toString()
-        binding.hungerText.contentDescription = getString(R.string.hunger_accessibility, hunger)
-        binding.hungerProgress.progress = hunger
-        binding.foodText.text = food.toString()
-        binding.foodText.contentDescription = getString(R.string.food_accessibility, food)
-    }
-
-    private fun updateStatus(running: Boolean = PetService.isRunning) {
-        binding.statusText.text = when {
-            !Settings.canDrawOverlays(this) -> getString(R.string.status_permission)
-            running -> getString(R.string.status_running)
-            else -> getString(R.string.status_stopped)
-        }
-        binding.statusBadge.setText(
-            when {
-                running -> R.string.badge_running
-                else -> R.string.badge_stopped
-            }
-        )
-        binding.companionMessage.setText(
-            if (running) R.string.hero_message_running else R.string.hero_message_idle
-        )
-        binding.startButton.visibility = if (running) View.GONE else View.VISIBLE
-        binding.stopButton.visibility = if (running) View.VISIBLE else View.GONE
-        binding.startButton.isEnabled = !running
-        binding.stopButton.isEnabled = running
-        binding.feedButton.isEnabled = running
-        binding.petButton.isEnabled = running
-        binding.sleepButton.isEnabled = running
-        updatePermissionStatus()
-    }
-
-    private fun updateSettingLabels() {
-        binding.petSizeValue.text = getString(R.string.percent_value, (settings.petScale * 100).toInt())
-        binding.walkSpeedValue.text = getString(R.string.percent_value, binding.walkSpeedSeek.progress)
-    }
-
-    private fun updateSettingsExpansion() {
-        binding.settingsDetails.visibility = if (settingsExpanded) View.VISIBLE else View.GONE
-        binding.settingsSummary.setText(
-            if (settingsExpanded) R.string.settings_expanded else R.string.settings_collapsed
-        )
-        binding.settingsChevron.rotation = if (settingsExpanded) 180f else 0f
-        binding.settingsToggle.contentDescription = getString(
-            if (settingsExpanded) R.string.settings_collapse else R.string.settings_expand
-        )
-    }
-
-    private fun updatePermissionStatus() {
-        fun mark(granted: Boolean) =
-            getString(if (granted) R.string.permission_ok else R.string.permission_missing)
-        val micGranted = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) ==
-            PackageManager.PERMISSION_GRANTED
-        binding.permissionStatus.text = buildString {
-            appendLine(getString(R.string.permission_overlay, mark(Settings.canDrawOverlays(this@MainActivity))))
-            appendLine(getString(R.string.permission_usage, mark(hasUsageStatsPermission())))
-            appendLine(getString(R.string.permission_a11y, mark(isAccessibilityServiceEnabledForBlocker())))
-            appendLine(getString(R.string.permission_mic, mark(micGranted)))
-            append(
-                getString(
-                    R.string.permission_sensevoice,
-                    getString(
-                        if (SenseVoiceModelStore.isPackInstalled(this@MainActivity) ||
-                            SenseVoiceModelStore.hasLocalModel(this@MainActivity)
-                        ) {
-                            R.string.permission_sensevoice_ok
-                        } else {
-                            R.string.permission_sensevoice_missing
-                        }
-                    )
-                )
-            )
-        }
-    }
-
-    private fun renderFlashNotes() {
-        binding.flashNoteContainer.removeAllViews()
-        val notes = runCatching { FlashNoteStore.all() }.getOrDefault(emptyList())
-        if (notes.isEmpty()) {
-            val empty = TextView(this).apply {
-                text = getString(R.string.flash_note_empty_list)
-                setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_secondary))
-                textSize = 14f
-            }
-            binding.flashNoteContainer.addView(empty)
-            return
-        }
-        val inflater = LayoutInflater.from(this)
-        notes.forEach { note ->
-            val row = inflater.inflate(R.layout.item_flash_note, binding.flashNoteContainer, false)
-            val category = row.findViewById<TextView>(R.id.noteCategory)
-            val text = row.findViewById<TextView>(R.id.noteText)
-            val delete = row.findViewById<TextView>(R.id.noteDelete)
-            val colorDot = row.findViewById<View>(R.id.noteColorDot)
-            val categoryLabel = getString(note.category.labelRes)
-            category.text = if (note.scheduleDate.isNullOrBlank()) {
-                categoryLabel
-            } else {
-                "$categoryLabel · ${note.scheduleDate}"
-            }
-            text.text = note.text
-            colorDot.background = GradientDrawable().apply {
-                shape = GradientDrawable.OVAL
-                setColor(FlashNoteColor.argb(note.color, note.category))
-            }
-            delete.setOnClickListener {
-                if (FlashNotePlayer.playingId == note.id) FlashNotePlayer.stop()
-                FlashNoteStore.delete(note.id)
-            }
-            binding.flashNoteContainer.addView(row)
-        }
-    }
-
-    private fun bindGestureShortcut(spinner: Spinner, gesture: PetGesture) {
-        val actions = PetAction.entries
-        spinner.adapter = ArrayAdapter(
-            this,
-            android.R.layout.simple_spinner_dropdown_item,
-            actions.map { getString(it.labelRes) }
-        )
-        spinner.setSelection(actions.indexOf(settings.actionFor(gesture)).coerceAtLeast(0), false)
-        spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                settings.setAction(gesture, actions[position])
-            }
-
-            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
-        }
-    }
-
-    private fun simpleSeekBarListener(onChanged: (Int) -> Unit) =
-        object : android.widget.SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: android.widget.SeekBar?, progress: Int, fromUser: Boolean) {
-                if (fromUser) onChanged(progress)
-            }
-            override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) = Unit
-            override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) = Unit
-        }
 
     private fun sendServiceAction(action: String) {
-        if (PetService.isRunning) startService(Intent(this, PetService::class.java).setAction(action))
+        if (PetService.isRunning) {
+            startService(Intent(this, PetService::class.java).setAction(action))
+        }
     }
 
-    /** Debug/agent smoke: adb am start … --ez auto_extract true */
     private fun scheduleAutoExtract() {
         if (!Settings.canDrawOverlays(this)) {
             Toast.makeText(this, R.string.overlay_permission_required, Toast.LENGTH_LONG).show()
@@ -456,21 +835,27 @@ class MainActivity : AppCompatActivity() {
             }
         }
         if (PetService.isRunning) {
-            binding.root.postDelayed(trigger, 600L)
+            window.decorView.postDelayed(trigger, 600L)
         } else {
             startPetService()
-            binding.root.postDelayed(trigger, 1_800L)
+            window.decorView.postDelayed(trigger, 1_800L)
+        }
+    }
+
+    private fun addExceptions() {
+        val intent = Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_HOME) }
+        packageManager.queryIntentActivities(intent, 0).forEach {
+            val packageName = it.activityInfo.packageName
+            if (!Whitelist.isWhitelisted(packageName)) Whitelist.whitelist(packageName)
         }
     }
 
     companion object {
         const val EXTRA_AUTO_EXTRACT = "auto_extract"
-        /** 自测：直接打开大爆炸词块页（绕过抓字）。 */
         const val EXTRA_DEBUG_BIGBANG = "debug_bigbang_text"
         const val EXTRA_DEBUG_AUTO_AI = "debug_auto_ai"
-        private const val KEY_SETTINGS_EXPANDED = "settings_expanded"
+        const val EXTRA_NAVIGATE_TIMER = "navigate_to_timer"
+        const val EXTRA_NAVIGATE_SETTINGS = "navigate_to_settings"
         private const val SERVICE_START_CHECK_DELAY_MS = 1_200L
-        private const val WALK_SPEED_MIN = 10
-        private const val WALK_SPEED_MAX = 500
     }
 }

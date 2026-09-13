@@ -250,14 +250,5 @@
             android:text="@string/schedule_ai_hint"
             android:textColor="@color/text_secondary"
             android:textSize="11sp" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
-            android:autoLink="web"
-            android:text="@string/schedule_calendar_attribution"
-            android:textColor="@color/text_secondary"
-            android:textSize="11sp" />
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

@@ -45,4 +45,12 @@ sealed class Screen {
 
     @Serializable
     data object MindfulLaunchApps : Screen()
+
+    /** 守伴：Reef 专注模式枢纽（长按环 / 计划 / 网站 / 正念 / 番茄钟入口） */
+    @Serializable
+    data object FocusHub : Screen()
+
+    /** 守伴：多日日程（底栏） */
+    @Serializable
+    data object Schedule : Screen()
 }

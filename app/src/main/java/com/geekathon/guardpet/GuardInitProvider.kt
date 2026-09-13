@@ -17,6 +17,7 @@ class GuardInitProvider : ContentProvider() {
         HabitPolicyStore.init(appContext)
         HabitRewardTracker.init(appContext)
         AppActiveCatalog.init(appContext)
+        runCatching { ScheduleEndScheduler.rescheduleAll(appContext) }
         HabitHook.evaluator = { host, packageName, activityClass ->
             HabitGuardian.evaluate(host, packageName, activityClass)
         }

@@ -14,6 +14,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -114,7 +115,12 @@ fun HomeContent(
     whitelistedAppsCount: Int = 0,
     mindfulAppsCount: Int = 0,
     isMindfulLaunchEnabled: Boolean = false,
-    dailyUsageText: String = "0m today"
+    dailyUsageText: String = "0m today",
+    /** 守伴等产品壳：不跳 AppIntro / Discord / 捐赠。 */
+    skipPromos: Boolean = false,
+    title: String? = null,
+    aboveFocusHeader: @Composable ColumnScope.() -> Unit = {},
+    belowNavRows: @Composable ColumnScope.() -> Unit = {}
 ) {
     val context = LocalContext.current
     val timerState by TimerStateManager.state.collectAsState()
@@ -128,6 +134,7 @@ fun HomeContent(
     )
 
     LaunchedEffect(Unit) {
+        if (skipPromos) return@LaunchedEffect
         if (prefs.getBoolean("first_run", true)) {
             onNavigateToIntro()
         } else {
@@ -158,7 +165,7 @@ fun HomeContent(
             LargeTopAppBar(
                 title = {
                     Text(
-                        stringResource(R.string.app_name),
+                        title ?: stringResource(R.string.app_name),
                         style = MaterialTheme.typography.headlineLarge.copy(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = (-1).sp
@@ -183,6 +190,8 @@ fun HomeContent(
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             Spacer(Modifier.height(4.dp))
+
+            aboveFocusHeader()
 
             if (showServiceHealthWarning) {
                 Card(
@@ -333,7 +342,7 @@ fun HomeContent(
                 else -> stringResource(R.string.focus_label)
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 HomeNavigationRow(
                     title = stringResource(R.string.routines),
                     subtitle = stringResource(R.string.sample_routine),
@@ -392,10 +401,13 @@ fun HomeContent(
                     onClick = onNavigateToTimer
                 )
             }
+
+            belowNavRows()
+
             Spacer(Modifier.height(32.dp))
         }
 
-        if (showDiscordDialog) {
+        if (!skipPromos && showDiscordDialog) {
             CommunityDialog(
                 onDismiss = {
                     prefs.edit { putBoolean("discord_shown", true) }
@@ -414,7 +426,7 @@ fun HomeContent(
             )
         }
 
-        if (showDonateDialog) {
+        if (!skipPromos && showDonateDialog) {
             DonateDialog(
                 onDismiss = {
                     prefs.edit { putBoolean("show_dialog", false) }
@@ -585,7 +597,7 @@ private fun HoldToFocusAnchor(
 }
 
 @Composable
-private fun HomeNavigationRow(
+fun HomeNavigationRow(
     title: String,
     subtitle: String,
     icon: ImageVector,

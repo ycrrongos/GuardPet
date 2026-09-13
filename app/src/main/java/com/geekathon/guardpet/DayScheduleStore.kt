@@ -47,10 +47,18 @@ data class DaySchedule(
     val rawNote: String? = null,
     val titleKey: String = normalizeTitleKey(title),
     val createdAt: Long = System.currentTimeMillis(),
-    val foodAwarded: Boolean = false
+    val foodAwarded: Boolean = false,
+    /** 完成程度 0–100；未完成时为 null */
+    val completionDegree: Int? = null,
+    /** 完成经验 / 反思 */
+    val experienceNote: String? = null
 ) {
     fun displayColor(): Int =
         if (status == DayScheduleStatus.DONE) DayScheduleColor.DONE_GREEN else colorArgb
+
+    fun durationMinutes(): Int = (endMinutes - startMinutes).coerceAtLeast(1)
+
+    fun midpointMinutes(): Int = startMinutes + durationMinutes() / 2
 
     fun isPolicyLocked(now: LocalTime = LocalTime.now(), today: LocalDate = LocalDate.now()): Boolean {
         if (date != today.toString()) return date < today.toString()
@@ -63,6 +71,22 @@ data class DaySchedule(
         if (date != today.toString()) return false
         val nowMins = now.hour * 60 + now.minute
         return nowMins in startMinutes until endMinutes.coerceAtLeast(startMinutes + 1)
+    }
+
+    /** 已过半程（含结束后）才可打开完成页。 */
+    fun canCompleteNow(now: LocalTime = LocalTime.now(), today: LocalDate = LocalDate.now()): Boolean {
+        if (status != DayScheduleStatus.PENDING) return false
+        if (date > today.toString()) return false
+        if (date < today.toString()) return true
+        val nowMins = now.hour * 60 + now.minute
+        return nowMins >= midpointMinutes()
+    }
+
+    fun hasEnded(now: LocalTime = LocalTime.now(), today: LocalDate = LocalDate.now()): Boolean {
+        if (date < today.toString()) return true
+        if (date > today.toString()) return false
+        val nowMins = now.hour * 60 + now.minute
+        return nowMins >= endMinutes
     }
 
     companion object {
@@ -215,23 +239,107 @@ object DayScheduleStore {
         notifyChanged()
     }
 
+    /**
+     * 按给定顺序重排当日全部日程（含已完成）：时长不变，从最早开始时刻起紧挨重排。
+     * [orderedIds] 必须是当日全部 id 的全排列。
+     */
+    fun reorderDay(date: LocalDate, orderedIds: List<Long>): Pair<Boolean, String> {
+        val all = forDate(date)
+        if (all.size < 2) return false to "至少两条日程才能调整顺序"
+        val expected = all.map { it.id }.toSet()
+        if (orderedIds.size != expected.size || orderedIds.toSet() != expected) {
+            return false to "顺序无效"
+        }
+        val byId = all.associateBy { it.id }
+        val ordered = orderedIds.mapNotNull { byId[it] }
+        val anchor = all.minOf { it.startMinutes }
+        var cursor = anchor
+        val db = helper.writableDatabase
+        db.beginTransaction()
+        try {
+            ordered.forEach { s ->
+                val dur = s.durationMinutes()
+                val start = cursor
+                val end = (start + dur).coerceAtMost(24 * 60 - 1)
+                db.update(
+                    "day_schedules",
+                    ContentValues().apply {
+                        put("start_minutes", start)
+                        put("end_minutes", end.coerceAtLeast(start + 1))
+                    },
+                    "id=?",
+                    arrayOf(s.id.toString())
+                )
+                cursor = end
+            }
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+        notifyChanged()
+        return true to "已调整顺序与时间"
+    }
+
+    /**
+     * 同日未完成日程上移/下移（兼容旧入口）。已开始也可调；已完成请用 [reorderDay]。
+     */
+    fun movePending(date: LocalDate, id: Long, direction: Int): Pair<Boolean, String> {
+        if (direction != -1 && direction != 1) return false to "无效方向"
+        val all = forDate(date)
+        if (all.size < 2) return false to "至少两条日程才能调整顺序"
+        val idx = all.indexOfFirst { it.id == id }
+        val swapWith = idx + direction
+        if (idx < 0) return false to "日程不存在"
+        if (swapWith !in all.indices) {
+            return false to if (direction < 0) "已经在最上面" else "已经在最下面"
+        }
+        val order = all.map { it.id }.toMutableList()
+        val a = order[idx]
+        order[idx] = order[swapWith]
+        order[swapWith] = a
+        return reorderDay(date, order)
+    }
+
+    /** @deprecated 用 [reorderDay]；保留给旧调用。 */
+    fun reorderPending(date: LocalDate, orderedMovableIds: List<Long>): Pair<Boolean, String> =
+        reorderDay(date, orderedMovableIds)
+
     fun findByCalendarEvent(eventId: Long, date: String): DaySchedule? =
         query(
             "calendar_event_id=? AND date=?",
             arrayOf(eventId.toString(), date)
         ).firstOrNull()
 
-    /** 完成日程：食物 +1（仅一次）。 */
+    /** 快捷完成（AI/旧入口）：需已过半程，默认完成度 80。 */
     fun markDone(id: Long): Pair<Boolean, String> {
         val s = byId(id) ?: return false to "日程不存在"
+        if (!s.canCompleteNow()) {
+            return false to "进行到一半后才能完成（${minutesToHm(s.midpointMinutes())} 起）"
+        }
+        return complete(id, degree = 80, experience = "（快捷完成）")
+    }
+
+    /**
+     * 完成日程：需已过半程；写入完成程度与经验，食物 +1（仅一次）。
+     */
+    fun complete(id: Long, degree: Int, experience: String): Pair<Boolean, String> {
+        val s = byId(id) ?: return false to "日程不存在"
         if (s.status == DayScheduleStatus.DONE) return false to "已经完成过了"
+        if (!s.canCompleteNow()) {
+            return false to "进行到一半后才能完成（${minutesToHm(s.midpointMinutes())} 起）"
+        }
         val ctx = appContext ?: return false to "未初始化"
+        val deg = degree.coerceIn(0, 100)
+        val note = experience.trim()
+        if (note.isBlank()) return false to "请填写完成经验"
         val awarded = !s.foodAwarded
         helper.writableDatabase.update(
             "day_schedules",
             ContentValues().apply {
                 put("status", DayScheduleStatus.DONE.key)
                 put("food_awarded", 1)
+                put("completion_degree", deg)
+                put("experience_note", note)
             },
             "id=?",
             arrayOf(id.toString())
@@ -241,6 +349,7 @@ object DayScheduleStore {
             settings.foodCount = settings.foodCount + 1
             settings.mood = (settings.mood + 4).coerceAtMost(100)
         }
+        ScheduleEndScheduler.clearNotified(ctx, id)
         notifyChanged()
         return true to if (awarded) "完成！食物 +1" else "已标记完成"
     }
@@ -307,6 +416,9 @@ object DayScheduleStore {
         put("title_key", s.titleKey)
         put("created_at", s.createdAt)
         put("food_awarded", if (s.foodAwarded) 1 else 0)
+        if (s.completionDegree != null) put("completion_degree", s.completionDegree)
+        else putNull("completion_degree")
+        put("experience_note", s.experienceNote)
     }
 
     private fun encodePkgs(list: List<String>): String =
@@ -326,6 +438,7 @@ object DayScheduleStore {
 
     private fun notifyChanged() {
         listeners.toList().forEach { it() }
+        appContext?.let { ScheduleEndScheduler.rescheduleAll(it) }
     }
 
     private fun query(
@@ -345,6 +458,8 @@ object DayScheduleStore {
         return cursor.use {
             buildList {
                 while (it.moveToNext()) {
+                    val degIdx = it.getColumnIndex("completion_degree")
+                    val expIdx = it.getColumnIndex("experience_note")
                     add(
                         DaySchedule(
                             id = it.getLong(it.getColumnIndexOrThrow("id")),
@@ -374,7 +489,11 @@ object DayScheduleStore {
                             rawNote = it.getString(it.getColumnIndexOrThrow("raw_note")),
                             titleKey = it.getString(it.getColumnIndexOrThrow("title_key")),
                             createdAt = it.getLong(it.getColumnIndexOrThrow("created_at")),
-                            foodAwarded = it.getInt(it.getColumnIndexOrThrow("food_awarded")) == 1
+                            foodAwarded = it.getInt(it.getColumnIndexOrThrow("food_awarded")) == 1,
+                            completionDegree = if (degIdx >= 0 && !it.isNull(degIdx)) {
+                                it.getInt(degIdx)
+                            } else null,
+                            experienceNote = if (expIdx >= 0) it.getString(expIdx) else null
                         )
                     )
                 }
@@ -383,7 +502,7 @@ object DayScheduleStore {
     }
 
     private class Helper(context: Context) :
-        SQLiteOpenHelper(context, "day_schedules.db", null, 1) {
+        SQLiteOpenHelper(context, "day_schedules.db", null, 2) {
         override fun onCreate(db: SQLiteDatabase) {
             db.execSQL(
                 """
@@ -403,7 +522,9 @@ object DayScheduleStore {
                     raw_note TEXT,
                     title_key TEXT NOT NULL,
                     created_at INTEGER NOT NULL,
-                    food_awarded INTEGER NOT NULL DEFAULT 0
+                    food_awarded INTEGER NOT NULL DEFAULT 0,
+                    completion_degree INTEGER,
+                    experience_note TEXT
                 )
                 """.trimIndent()
             )
@@ -411,6 +532,11 @@ object DayScheduleStore {
             db.execSQL("CREATE INDEX idx_day_sched_title_key ON day_schedules(title_key)")
         }
 
-        override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
+        override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+            if (oldVersion < 2) {
+                db.execSQL("ALTER TABLE day_schedules ADD COLUMN completion_degree INTEGER")
+                db.execSQL("ALTER TABLE day_schedules ADD COLUMN experience_note TEXT")
+            }
+        }
     }
 }

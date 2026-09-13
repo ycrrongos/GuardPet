@@ -347,5 +347,34 @@ class OverlayFocusSession {
             strictMode = strictMode,
             zenMode = zenMode
         )
+        // 与主页 / TimerContent 共用的状态，避免再走 FocusModeService
+        if (!active) {
+            TimerStateManager.reset()
+            return
+        }
+        val phase = when (phaseLabel) {
+            "SHORT_BREAK" -> PomodoroPhase.SHORT_BREAK
+            "LONG_BREAK" -> PomodoroPhase.LONG_BREAK
+            "BREAK" -> PomodoroPhase.COUNT_UP_BREAK
+            else -> PomodoroPhase.FOCUS
+        }
+        TimerStateManager.updateState {
+            copy(
+                isRunning = active && !paused,
+                isPaused = active && paused,
+                timeRemaining = displayMs,
+                focusTimeElapsed = if (kind == Kind.CountUp) displayMs else 0L,
+                breakBudget = if (kind == Kind.CountUpBreak) remainingMs else 0L,
+                pomodoroPhase = phase,
+                currentCycle = pomodoroCycle,
+                totalCycles = pomodoroCycles,
+                isPomodoroMode = kind == Kind.PomodoroFocus ||
+                    kind == Kind.PomodoroShort ||
+                    kind == Kind.PomodoroLong,
+                isCountUpMode = kind == Kind.CountUp || kind == Kind.CountUpBreak,
+                isStrictMode = strictMode,
+                countUpRatio = countUpRatio.toFloat()
+            )
+        }
     }
 }

@@ -637,4 +637,56 @@ object ScheduleLlmClient {
         }
         return allow.distinct() to block.distinct()
     }
+
+    data class CompletionDraft(
+        val degree: Int,
+        val experience: String
+    )
+
+    /** 语音转写后，提炼完成程度(0-100)与经验文字。 */
+    fun parseCompletionFromVoice(spoken: String, scheduleTitle: String): CompletionDraft {
+        val text = spoken.trim()
+        if (text.isBlank()) return CompletionDraft(70, "")
+        if (HabitPolicyStore.llmApiKey.isBlank()) {
+            return localCompletionFromVoice(text)
+        }
+        val system = """
+你是守伴日程复盘助手。根据用户口述，输出 JSON（不要 markdown）：
+{"degree":0到100的整数,"experience":"一两句经验或反思"}
+规则：degree 表示完成程度；没提数字时按语气估（做得好≈85，一般≈60，很差≈30）。
+experience 用中文，保留用户要点，可轻微润色，不要编造未说的事实。
+        """.trimIndent()
+        val user = JSONObject()
+            .put("title", scheduleTitle)
+            .put("speech", text)
+            .toString()
+        val result = HabitLlmClient.chatJson(system, user)
+        val raw = result.json ?: result.text?.let { runCatching { JSONObject(it) }.getOrNull() }
+        if (raw != null) {
+            runCatching {
+                val deg = raw.optInt("degree", 70).coerceIn(0, 100)
+                val exp = raw.optString("experience").ifBlank { text }
+                return CompletionDraft(deg, exp)
+            }
+        }
+        return localCompletionFromVoice(text)
+    }
+
+    private fun localCompletionFromVoice(text: String): CompletionDraft {
+        val pct = Regex("""(\d{1,3})\s*%|百分之\s*(\d{1,3})|完成[了度]*\s*(\d{1,3})""")
+            .find(text)
+            ?.groupValues
+            ?.drop(1)
+            ?.firstOrNull { it.isNotBlank() }
+            ?.toIntOrNull()
+            ?.coerceIn(0, 100)
+        val degree = pct ?: when {
+            listOf("全部", "做完", "很好", "顺利", "完美").any { it in text } -> 90
+            listOf("差不多", "基本", "还行", "一般").any { it in text } -> 70
+            listOf("一半", "部分").any { it in text } -> 50
+            listOf("没做", "失败", "很差", "糟糕").any { it in text } -> 25
+            else -> 75
+        }
+        return CompletionDraft(degree, text)
+    }
 }

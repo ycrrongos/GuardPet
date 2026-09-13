@@ -29,7 +29,8 @@ import dev.pranav.reef.R
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsContent(
-    onSoundPicker: () -> Unit
+    onSoundPicker: () -> Unit,
+    mainFooter: @Composable () -> Unit = {}
 ) {
     var currentScreen by remember { mutableStateOf<SettingsScreenRoute>(SettingsScreenRoute.Main) }
     val scrollBehavior =
@@ -80,7 +81,8 @@ fun SettingsContent(
             when (screen) {
                 SettingsScreenRoute.Main -> MainSettingsContent(
                     contentPadding = paddingValues,
-                    onNavigate = { currentScreen = it }
+                    onNavigate = { currentScreen = it },
+                    footer = mainFooter
                 )
 
                 SettingsScreenRoute.Pomodoro -> PomodoroSettingsContent(

@@ -9,6 +9,59 @@ class PetSettings(context: Context) {
         applyTimeDecay()
     }
 
+    var dashScopeApiKey: String
+        get() = preferences.getString(KEY_DASHSCOPE_API_KEY, null)
+            ?.takeIf { it.isNotBlank() }
+            ?: BuildConfig.DASHSCOPE_API_KEY
+        set(value) {
+            preferences.edit().putString(KEY_DASHSCOPE_API_KEY, value.trim()).apply()
+        }
+
+    var deepSeekApiKey: String
+        get() = preferences.getString(KEY_DEEPSEEK_API_KEY, null)
+            ?.takeIf { it.isNotBlank() }
+            ?: BuildConfig.DEEPSEEK_API_KEY
+        set(value) {
+            preferences.edit().putString(KEY_DEEPSEEK_API_KEY, value.trim()).apply()
+        }
+
+    var openAiApiKey: String
+        get() = preferences.getString(KEY_OPENAI_API_KEY, null)
+            ?.takeIf { it.isNotBlank() }
+            ?: BuildConfig.OPENAI_API_KEY
+        set(value) {
+            preferences.edit().putString(KEY_OPENAI_API_KEY, value.trim()).apply()
+        }
+
+    var openAiBaseUrl: String
+        get() = preferences.getString(KEY_OPENAI_BASE_URL, null)
+            ?.takeIf { it.isNotBlank() }
+            ?: BuildConfig.OPENAI_BASE_URL.ifBlank { OpenAiImageClient.DEFAULT_BASE_URL }
+        set(value) {
+            preferences.edit().putString(KEY_OPENAI_BASE_URL, value.trim()).apply()
+        }
+
+    var appearanceMode: PetAppearanceGenerator.GenerationMode
+        get() = when (preferences.getString(KEY_APPEARANCE_MODE, MODE_FAST)) {
+            MODE_QUALITY -> PetAppearanceGenerator.GenerationMode.QUALITY
+            else -> PetAppearanceGenerator.GenerationMode.FAST
+        }
+        set(value) {
+            val stored = when (value) {
+                PetAppearanceGenerator.GenerationMode.QUALITY -> MODE_QUALITY
+                PetAppearanceGenerator.GenerationMode.FAST -> MODE_FAST
+            }
+            preferences.edit().putString(KEY_APPEARANCE_MODE, stored).apply()
+        }
+
+    fun appearanceCredentials(): PetAppearanceAgent.Credentials =
+        PetAppearanceAgent.Credentials(
+            dashScopeApiKey = dashScopeApiKey,
+            deepSeekApiKey = deepSeekApiKey,
+            openAiApiKey = openAiApiKey,
+            openAiBaseUrl = openAiBaseUrl
+        )
+
     var edgeWalkEnabled: Boolean
         get() { applyTimeDecay(); return preferences.getBoolean(KEY_EDGE_WALK, true) }
         set(value) = preferences.edit().putBoolean(KEY_EDGE_WALK, value).apply()
@@ -85,6 +138,13 @@ class PetSettings(context: Context) {
         private const val KEY_WALK_SPEED = "walk_speed"
         private const val KEY_SEMI_HIDDEN = "semi_hidden"
         private const val KEY_LAST_DECAY = "last_decay_time"
+        private const val KEY_DASHSCOPE_API_KEY = "dashscope_api_key"
+        private const val KEY_DEEPSEEK_API_KEY = "deepseek_api_key"
+        private const val KEY_OPENAI_API_KEY = "openai_api_key"
+        private const val KEY_OPENAI_BASE_URL = "openai_base_url"
+        private const val KEY_APPEARANCE_MODE = "appearance_mode"
+        private const val MODE_FAST = "fast"
+        private const val MODE_QUALITY = "quality"
         private const val DAY_MS = 86_400_000L
         private const val DAILY_DECAY = 40
 

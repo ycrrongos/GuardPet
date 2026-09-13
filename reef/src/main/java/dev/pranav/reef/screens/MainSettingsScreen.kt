@@ -53,7 +53,8 @@ import dev.pranav.reef.util.prefs
 @Composable
 fun MainSettingsContent(
     contentPadding: PaddingValues = PaddingValues(),
-    onNavigate: (SettingsScreenRoute) -> Unit
+    onNavigate: (SettingsScreenRoute) -> Unit,
+    footer: @Composable () -> Unit = {}
 ) {
     val context = LocalContext.current
     var enableDND by remember { mutableStateOf(prefs.getBoolean("enable_dnd", false)) }
@@ -173,9 +174,20 @@ fun MainSettingsContent(
                     when (item.destination) {
                         SettingsScreenRoute.Pomodoro -> onNavigate(SettingsScreenRoute.Pomodoro)
                         SettingsScreenRoute.Notifications -> onNavigate(SettingsScreenRoute.Notifications)
-                        SettingsScreenRoute.Main -> context.startActivity(
-                            Intent(context, AboutActivity::class.java)
-                        )
+                        SettingsScreenRoute.Main -> {
+                            runCatching {
+                                context.startActivity(
+                                    Intent().setClassName(
+                                        context.packageName,
+                                        "com.geekathon.guardpet.GuardAboutActivity"
+                                    )
+                                )
+                            }.onFailure {
+                                context.startActivity(
+                                    Intent(context, AboutActivity::class.java)
+                                )
+                            }
+                        }
 
                         else -> { /* No-op */
                         }
@@ -187,6 +199,10 @@ fun MainSettingsContent(
         item {
             Spacer(modifier = Modifier.height(16.dp))
             DonateButton()
+        }
+
+        item {
+            footer()
         }
     }
 }

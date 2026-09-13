@@ -518,9 +518,22 @@ class ScheduleOverlay(private val app: Context) {
         }
         card.scheduleDoneButton.setOnClickListener {
             ScheduleHud.noteInteraction()
-            val (ok, msg) = DayScheduleStore.markDone(schedule.id)
-            Toast.makeText(app, msg, Toast.LENGTH_SHORT).show()
-            if (ok) refreshList()
+            if (!schedule.canCompleteNow()) {
+                Toast.makeText(
+                    app,
+                    app.getString(
+                        R.string.schedule_complete_too_early,
+                        DayScheduleStore.minutesToHm(schedule.midpointMinutes())
+                    ),
+                    Toast.LENGTH_LONG
+                ).show()
+                return@setOnClickListener
+            }
+            app.startActivity(
+                Intent(app, ScheduleCompleteActivity::class.java)
+                    .putExtra(ScheduleCompleteActivity.EXTRA_SCHEDULE_ID, schedule.id)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
         }
         card.scheduleColorButton.visibility =
             if (schedule.status == DayScheduleStatus.PENDING) View.VISIBLE else View.GONE

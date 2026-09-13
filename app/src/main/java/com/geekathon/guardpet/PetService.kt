@@ -25,6 +25,12 @@ import android.view.WindowManager
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
+import com.geekathon.guardpet.friend.FriendAvatarCache
+import com.geekathon.guardpet.friend.FriendClient
+import com.geekathon.guardpet.friend.FriendPetSnapshot
+import com.geekathon.guardpet.friend.FriendPrefs
+import com.geekathon.guardpet.friend.HabitXpStore
+import java.io.File
 import dev.pranav.reef.accessibility.BlockerService
 import kotlin.math.abs
 import java.time.LocalTime
@@ -33,6 +39,16 @@ import kotlin.random.Random
 class PetService : Service() {
     private lateinit var windowManager: WindowManager
     private var petView: PetCanvas? = null
+    private var friendPetViews = linkedMapOf<String, PetCanvas>()
+    private val friendShownKey = mutableMapOf<String, String>()
+    private var friendStopObserve: (() -> Unit)? = null
+    private val friendHandler = Handler(Looper.getMainLooper())
+    private val friendSyncTick = object : Runnable {
+        override fun run() {
+            syncFriendPresence()
+            friendHandler.postDelayed(this, 2_500L)
+        }
+    }
     private var idleAnimator: ObjectAnimator? = null
     private lateinit var assets: PetAssetRepository
     private lateinit var settings: PetSettings
@@ -91,6 +107,7 @@ class PetService : Service() {
             isRunning = true
             instance = this
             clearLastStartError()
+            startFriendPresence()
         }.onFailure {
             isRunning = false
             saveLastStartError(it)
@@ -183,6 +200,7 @@ class PetService : Service() {
         textCropOverlay?.close()
         textCropOverlay = null
         stopPhoneShakeListen()
+        stopFriendPresence()
         petView?.let { runCatching { windowManager.removeView(it) } }
         petView = null
         isRunning = false
@@ -216,6 +234,128 @@ class PetService : Service() {
         applyVisualState()
         startIdleAnimation()
         updateEdgeWalk()
+        syncFriendPresence()
+    }
+
+    private fun startFriendPresence() {
+        friendStopObserve?.invoke()
+        friendStopObserve = FriendClient.observe { friendHandler.post { syncFriendPresence() } }
+        friendHandler.removeCallbacks(friendSyncTick)
+        friendHandler.post(friendSyncTick)
+        val prefs = FriendPrefs(this)
+        if (prefs.autoConnect && prefs.serverHost.isNotBlank() && !FriendClient.snapshot.connected) {
+            FriendClient.connect(this, prefs.serverHost, prefs.roomCode, prefs.displayName)
+        }
+    }
+
+    private fun stopFriendPresence() {
+        friendHandler.removeCallbacks(friendSyncTick)
+        friendStopObserve?.invoke()
+        friendStopObserve = null
+        removeFriendPet()
+    }
+
+    private fun syncFriendPresence() {
+        if (!::windowManager.isInitialized || petView == null) return
+        val xp = HabitXpStore(this)
+        val avatarHash = assets.appearanceHash()
+        FriendClient.sendPetState(
+            FriendPetSnapshot(
+                mood = settings.mood,
+                hunger = settings.hunger,
+                food = settings.foodCount,
+                level = xp.level,
+                xp = xp.xp,
+                state = currentState.key,
+                avatarHash = avatarHash
+            )
+        )
+        if (FriendClient.snapshot.connected) {
+            FriendClient.pushLocalAvatar(this, force = false)
+        }
+        val friends = FriendClient.otherMembers().take(MAX_FRIEND_OVERLAYS)
+        val keep = friends.map { it.userId }.toSet()
+        friendPetViews.keys.filter { it !in keep }.toList().forEach { removeFriendPet(it) }
+        if (friends.isEmpty()) return
+
+        val selfParams = petView?.layoutParams as? WindowManager.LayoutParams ?: return
+        val gap = (8 * resources.displayMetrics.density).toInt()
+        val canvasSize = PetCanvasConfig.resolve(this)
+        val screen = resources.displayMetrics
+
+        friends.forEachIndexed { index, friend ->
+            val slot = index + 1
+            var view = friendPetViews[friend.userId]
+            if (view == null) {
+                val fp = WindowManager.LayoutParams(
+                    canvasSize.widthPx,
+                    canvasSize.heightPx,
+                    WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                        WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                    PixelFormat.TRANSLUCENT
+                ).apply {
+                    gravity = Gravity.TOP or Gravity.START
+                    x = (selfParams.x + slot * (selfParams.width + gap))
+                        .coerceIn(0, (screen.widthPixels - canvasSize.widthPx).coerceAtLeast(0))
+                    y = selfParams.y
+                }
+                val created = PetCanvas(this).apply {
+                    contentDescription = getString(R.string.friend_pet_content_desc, friend.name)
+                    alpha = 0.95f
+                }
+                runCatching {
+                    windowManager.addView(created, fp)
+                    friendPetViews[friend.userId] = created
+                    view = created
+                }
+            }
+            val canvas = view ?: return@forEachIndexed
+            val fp = canvas.layoutParams as? WindowManager.LayoutParams ?: return@forEachIndexed
+            fp.x = (selfParams.x + slot * (selfParams.width + gap))
+                .coerceIn(0, (screen.widthPixels - fp.width).coerceAtLeast(0))
+            fp.y = selfParams.y
+            runCatching { windowManager.updateViewLayout(canvas, fp) }
+
+            val hash = friend.pet.avatarHash
+            val file: File? = when {
+                hash.isNotBlank() -> FriendAvatarCache.fileFor(this, hash)
+                else -> null
+            } ?: assets.fileFor(PetState.fromKey(friend.pet.state))
+                ?: assets.randomFileFor(PetState.fromKey(friend.pet.state))
+
+            val showKey = "${hash.ifBlank { "local" }}:${friend.pet.state}:${file?.absolutePath.orEmpty()}"
+            if (friendShownKey[friend.userId] != showKey) {
+                canvas.show(file)
+                friendShownKey[friend.userId] = showKey
+            }
+            canvas.setVisualScale(settings.petScale * 0.92f, 0.92f)
+            canvas.contentDescription = getString(R.string.friend_pet_content_desc, friend.name)
+            canvas.setOnClickListener {
+                val p = friend.pet
+                Toast.makeText(
+                    this,
+                    getString(
+                        R.string.friend_pet_status_toast,
+                        friend.name,
+                        p.level,
+                        p.mood,
+                        p.hunger,
+                        p.food
+                    ),
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+    }
+
+    private fun removeFriendPet(userId: String) {
+        friendPetViews.remove(userId)?.let { runCatching { windowManager.removeView(it) } }
+        friendShownKey.remove(userId)
+    }
+
+    private fun removeFriendPet() {
+        friendPetViews.keys.toList().forEach { removeFriendPet(it) }
     }
 
     private fun applyVisualState() {
@@ -545,6 +685,7 @@ class PetService : Service() {
                 params.x = (startX + (targetX - startX) * p).toInt().coerceIn(0, maxX)
                 params.y = (startY + (targetY - startY) * p).toInt().coerceIn(0, maxY)
                 windowManager.updateViewLayout(view, params)
+                syncFriendPresence()
             }
             addListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationCancel(animation: Animator) {
@@ -825,6 +966,7 @@ class PetService : Service() {
                         (screen.heightPixels - view.height).coerceAtLeast(0)
                     )
                     runCatching { windowManager.updateViewLayout(view, params) }
+                    syncFriendPresence()
                     if (!shakeFired && reverseCount >= SHAKE_REVERSES) {
                         shakeFired = true
                         tapHandler.removeCallbacks(holdRunnable)
@@ -979,6 +1121,7 @@ class PetService : Service() {
         private const val SHAKE_SEGMENT_PX = 36f
         private const val CAPTURE_DELAY_MS = 280L
         private const val INTERACTION_DISPLAY_MS = 1_800L
+        private const val MAX_FRIEND_OVERLAYS = 4
         private const val CHANNEL_ID = "desktop_pet_channel"
         private const val NOTIFICATION_ID = 1001
         private const val RUNTIME_PREFERENCES = "pet_runtime"
