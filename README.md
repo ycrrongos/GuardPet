@@ -21,3 +21,9 @@
 6. 语音闪记需要麦克风权限
 
 专注功能基于 Reef。衍生使用必须在设置或关于页保留指向原仓库的链接。
+
+## 开源许可
+
+本项目源码以 **Apache License 2.0** 开源，详见 [LICENSE](LICENSE)。
+
+第三方组件（如 Reef MIT、Calendar MIT 等）保留各自许可证，见 [NOTICE](NOTICE)。

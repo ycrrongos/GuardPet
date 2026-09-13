@@ -419,6 +419,13 @@ fun GuardSettingsFooter(
         ) {
             Text(stringResource(R.string.friend_entry))
         }
+        OutlinedButton(
+            onClick = { FocusLauncher.openAppearance(context) },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Text(stringResource(R.string.appearance_title))
+        }
         CompanionPrefsCard(settings = settings, onRefreshSettings = onRefreshSettings)
         GestureShortcutsCard(settings = settings)
         PermissionsCard()

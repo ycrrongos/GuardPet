@@ -37,6 +37,13 @@ object FocusLauncher {
         )
     }
 
+    fun openAppearance(context: Context) {
+        context.startActivity(
+            Intent(context, PetAppearanceActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        )
+    }
+
     fun openSource(context: Context) {
         context.startActivity(
             Intent(Intent.ACTION_VIEW, Uri.parse(SOURCE_URL))

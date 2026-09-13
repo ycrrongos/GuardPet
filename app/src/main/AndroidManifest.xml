@@ -144,6 +144,12 @@
             android:theme="@style/Theme.DesktopPet" />
 
         <activity
+            android:name=".PetAppearanceActivity"
+            android:exported="false"
+            android:label="@string/appearance_title"
+            android:theme="@style/Theme.DesktopPet" />
+
+        <activity
             android:name=".HabitGuardianActivity"
             android:exported="true"
             android:label="@string/habit_guard_title">

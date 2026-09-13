@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="appearance_subject_types">
+        <item>请选择主体类型</item>
+        <item>小猫</item>
+        <item>小狗</item>
+        <item>兔子</item>
+        <item>狐狸</item>
+        <item>小龙</item>
+        <item>熊猫</item>
+        <item>企鹅</item>
+        <item>机器人</item>
+        <item>Q版女孩</item>
+        <item>Q版男孩</item>
+        <item>团子生物</item>
+        <item>自定义 / 其他</item>
+    </string-array>
+    <string-array name="appearance_art_styles">
+        <item>请选择画面风格</item>
+        <item>二次元Q版贴纸</item>
+        <item>柔和水彩</item>
+        <item>像素风</item>
+        <item>极简干净</item>
+        <item>柔和赛博</item>
+        <item>半写实可爱</item>
+        <item>粘土手办风</item>
+        <item>自定义 / 其他</item>
+    </string-array>
+</resources>

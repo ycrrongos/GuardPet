@@ -1,0 +1,31 @@
+守伴 GuardPet
+Copyright 2026 GuardPet Contributors
+
+This product is licensed under the Apache License, Version 2.0.
+See the LICENSE file for the full license text.
+
+--------------------------------------------------------------------------
+Third-party notices
+
+This product includes software developed by others. Their licenses apply
+to their respective components.
+
+1) Reef (focus / blocker library)
+   Source: https://github.com/aload0/Reef
+   License: MIT
+   Location: GuardPet/reef/ and GuardPet/third_party/reef/
+   Note: Do not use the "Reef" name or official icon as this product's
+   branding. Attribution must be retained (see in-app About page).
+
+2) kizitonwose/Calendar
+   Source: https://github.com/kizitonwose/Calendar
+   License: MIT
+
+3) AppIntro (bundled with Reef module)
+   License: as distributed by the upstream AppIntro project
+
+4) sherpa-onnx / SenseVoice (offline ASR, separate model pack)
+   Used for on-device speech recognition; model may be distributed separately.
+
+Appearance generation utilities were adapted with reference to
+https://github.com/1103-jun/AI- (MikuUI desktop pet appearance tooling).

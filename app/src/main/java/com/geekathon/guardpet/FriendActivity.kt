@@ -1,13 +1,10 @@
 package com.geekathon.guardpet
 
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -29,7 +26,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeTopAppBar
@@ -46,7 +42,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -62,10 +57,8 @@ import com.geekathon.guardpet.friend.FriendMember
 import com.geekathon.guardpet.friend.FriendPrefs
 import com.geekathon.guardpet.friend.HabitXpSettler
 import com.geekathon.guardpet.friend.HabitXpStore
+import com.geekathon.guardpet.ui.AppearanceCustomizeCard
 import dev.pranav.reef.ui.ReefTheme
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.io.File
 
 class FriendActivity : AppCompatActivity() {
@@ -87,16 +80,7 @@ class FriendActivity : AppCompatActivity() {
                 var xp by remember { mutableStateOf(xpStore.xp) }
                 var xpNeed by remember { mutableStateOf(xpStore.xpToNext()) }
                 var note by remember { mutableStateOf(xpStore.lastSettleNote) }
-
-                var features by remember { mutableStateOf("") }
-                var freeIdea by remember { mutableStateOf(assets.customIdea().orEmpty().takeIf { it != "上传图片" }.orEmpty()) }
-                var quality by remember { mutableStateOf(petSettings.appearanceMode == PetAppearanceGenerator.GenerationMode.QUALITY) }
-                var dashKey by remember { mutableStateOf(petSettings.dashScopeApiKey) }
-                var generating by remember { mutableStateOf(false) }
-                var statusText by remember { mutableStateOf(if (assets.hasCustomAppearance()) getString(R.string.appearance_status_custom, assets.customIdea().orEmpty()) else getString(R.string.appearance_status_idle)) }
-                var pendingUpload by remember { mutableStateOf<ByteArray?>(null) }
                 var avatarTick by remember { mutableIntStateOf(0) }
-                val scope = rememberCoroutineScope()
 
                 DisposableEffect(Unit) {
                     val stop = FriendClient.observe {
@@ -104,67 +88,6 @@ class FriendActivity : AppCompatActivity() {
                         avatarTick = it.avatarTick
                     }
                     onDispose { stop() }
-                }
-
-                val pickImage = rememberLauncherForActivityResult(
-                    ActivityResultContracts.GetContent()
-                ) { uri: Uri? ->
-                    if (uri == null) return@rememberLauncherForActivityResult
-                    runCatching {
-                        contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                    }.getOrNull()?.let { bytes ->
-                        pendingUpload = bytes
-                        statusText = getString(R.string.appearance_status_upload_ready)
-                    }
-                }
-
-                fun refreshPetAfterAppearance() {
-                    avatarTick++
-                    startService(
-                        Intent(this@FriendActivity, PetService::class.java)
-                            .setAction(PetService.ACTION_REFRESH)
-                    )
-                    FriendClient.pushLocalAvatar(this@FriendActivity, force = true)
-                    statusText = if (assets.hasCustomAppearance()) {
-                        getString(R.string.appearance_status_custom, assets.customIdea().orEmpty())
-                    } else {
-                        getString(R.string.appearance_status_idle)
-                    }
-                }
-
-                fun runGenerate(block: () -> PetAppearanceGenerator.Result) {
-                    if (generating) return
-                    generating = true
-                    statusText = getString(R.string.appearance_generating)
-                    scope.launch {
-                        val outcome = withContext(Dispatchers.IO) {
-                            runCatching { block() }
-                        }
-                        generating = false
-                        outcome.onSuccess { result ->
-                            val label = when (result.source) {
-                                PetAppearanceGenerator.Source.UPLOAD -> getString(R.string.appearance_label_upload)
-                                else -> result.refinedPrompt.ifBlank { result.prompt }.ifBlank { "自定义形象" }
-                            }
-                            assets.installGeneratedAppearance(result.pngBytes, label.take(120))
-                            Toast.makeText(
-                                this@FriendActivity,
-                                when (result.source) {
-                                    PetAppearanceGenerator.Source.QWEN -> getString(R.string.appearance_success_qwen)
-                                    PetAppearanceGenerator.Source.UPLOAD -> getString(R.string.appearance_success_upload)
-                                    PetAppearanceGenerator.Source.LOCAL -> getString(R.string.appearance_success_local)
-                                    PetAppearanceGenerator.Source.PLANNED -> getString(R.string.appearance_success_planned)
-                                    PetAppearanceGenerator.Source.ONLINE -> getString(R.string.appearance_success_online)
-                                    else -> getString(R.string.appearance_success_online)
-                                },
-                                Toast.LENGTH_LONG
-                            ).show()
-                            refreshPetAfterAppearance()
-                        }.onFailure {
-                            statusText = getString(R.string.appearance_failed, it.message ?: it.javaClass.simpleName)
-                            Toast.makeText(this@FriendActivity, statusText, Toast.LENGTH_LONG).show()
-                        }
-                    }
                 }
 
                 val scroll = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
@@ -206,7 +129,6 @@ class FriendActivity : AppCompatActivity() {
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
 
-                        // 等级
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(
@@ -251,191 +173,11 @@ class FriendActivity : AppCompatActivity() {
                             }
                         }
 
-                        // 定制形象
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                            )
-                        ) {
-                            Column(
-                                Modifier.padding(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                Text(
-                                    stringResource(R.string.appearance_title),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    stringResource(R.string.appearance_guide_hint),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    FilterChip(
-                                        selected = !quality,
-                                        onClick = {
-                                            quality = false
-                                            petSettings.appearanceMode = PetAppearanceGenerator.GenerationMode.FAST
-                                        },
-                                        label = { Text(stringResource(R.string.appearance_mode_fast_short)) }
-                                    )
-                                    FilterChip(
-                                        selected = quality,
-                                        onClick = {
-                                            quality = true
-                                            petSettings.appearanceMode = PetAppearanceGenerator.GenerationMode.QUALITY
-                                        },
-                                        label = { Text(stringResource(R.string.appearance_mode_quality_short)) }
-                                    )
-                                }
-                                OutlinedTextField(
-                                    value = features,
-                                    onValueChange = { features = it },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    label = { Text(stringResource(R.string.appearance_features_label)) },
-                                    placeholder = { Text(stringResource(R.string.appearance_features_hint)) }
-                                )
-                                OutlinedTextField(
-                                    value = freeIdea,
-                                    onValueChange = { freeIdea = it },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    label = { Text(stringResource(R.string.appearance_free_label)) },
-                                    singleLine = false,
-                                    minLines = 2
-                                )
-                                if (quality) {
-                                    OutlinedTextField(
-                                        value = dashKey,
-                                        onValueChange = {
-                                            dashKey = it
-                                            petSettings.dashScopeApiKey = it
-                                        },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        label = { Text(stringResource(R.string.appearance_dashscope_hint)) },
-                                        singleLine = true
-                                    )
-                                }
-                                Text(
-                                    statusText,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Button(
-                                    onClick = {
-                                        val upload = pendingUpload
-                                        if (upload != null) {
-                                            val creds = petSettings.appearanceCredentials()
-                                            val mode = if (quality && creds.hasQwen()) {
-                                                PetAppearanceGenerator.GenerationMode.QUALITY
-                                            } else {
-                                                PetAppearanceGenerator.GenerationMode.FAST
-                                            }
-                                            if (quality && !creds.hasQwen()) {
-                                                Toast.makeText(
-                                                    this@FriendActivity,
-                                                    R.string.dashscope_key_missing,
-                                                    Toast.LENGTH_LONG
-                                                ).show()
-                                            }
-                                            runGenerate {
-                                                PetAppearanceGenerator.generateFromUpload(
-                                                    upload,
-                                                    "image/png",
-                                                    PetAppearanceAgent.PromptGuide(
-                                                        coreFeatures = features,
-                                                        freeIdea = freeIdea
-                                                    ),
-                                                    creds,
-                                                    mode
-                                                )
-                                            }
-                                        } else {
-                                            val guide = PetAppearanceAgent.PromptGuide(
-                                                coreFeatures = features,
-                                                freeIdea = freeIdea
-                                            )
-                                            if (guide.composeIdeaOrEmpty().isBlank()) {
-                                                Toast.makeText(
-                                                    this@FriendActivity,
-                                                    R.string.appearance_empty,
-                                                    Toast.LENGTH_SHORT
-                                                ).show()
-                                                return@Button
-                                            }
-                                            val mode = if (quality) {
-                                                PetAppearanceGenerator.GenerationMode.QUALITY
-                                            } else {
-                                                PetAppearanceGenerator.GenerationMode.FAST
-                                            }
-                                            val creds = petSettings.appearanceCredentials()
-                                            if (mode == PetAppearanceGenerator.GenerationMode.QUALITY && !creds.hasQwen()) {
-                                                Toast.makeText(
-                                                    this@FriendActivity,
-                                                    R.string.dashscope_key_missing,
-                                                    Toast.LENGTH_LONG
-                                                ).show()
-                                                return@Button
-                                            }
-                                            runGenerate {
-                                                PetAppearanceGenerator.generateFromIdea(guide, creds, mode)
-                                            }
-                                        }
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    enabled = !generating
-                                ) {
-                                    Text(stringResource(R.string.appearance_generate))
-                                }
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    OutlinedButton(
-                                        onClick = { pickImage.launch("image/*") },
-                                        modifier = Modifier.weight(1f),
-                                        enabled = !generating
-                                    ) {
-                                        Text(stringResource(R.string.appearance_pick_image))
-                                    }
-                                    OutlinedButton(
-                                        onClick = {
-                                            val bytes = pendingUpload
-                                            if (bytes == null) {
-                                                Toast.makeText(
-                                                    this@FriendActivity,
-                                                    R.string.appearance_need_upload,
-                                                    Toast.LENGTH_SHORT
-                                                ).show()
-                                                return@OutlinedButton
-                                            }
-                                            runGenerate { PetAppearanceGenerator.applyUploadDirect(bytes) }
-                                        },
-                                        modifier = Modifier.weight(1f),
-                                        enabled = !generating
-                                    ) {
-                                        Text(stringResource(R.string.appearance_apply_upload))
-                                    }
-                                }
-                                OutlinedButton(
-                                    onClick = {
-                                        assets.clearCustomAppearance()
-                                        pendingUpload = null
-                                        Toast.makeText(
-                                            this@FriendActivity,
-                                            R.string.appearance_restored,
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                        refreshPetAfterAppearance()
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    enabled = !generating
-                                ) {
-                                    Text(stringResource(R.string.appearance_restore))
-                                }
-                            }
-                        }
+                        AppearanceCustomizeCard(
+                            assets = assets,
+                            settings = petSettings,
+                            onAppearanceChanged = { avatarTick++ }
+                        )
 
                         OutlinedTextField(
                             value = host,
@@ -489,7 +231,6 @@ class FriendActivity : AppCompatActivity() {
                             Text(stringResource(R.string.friend_disconnect))
                         }
 
-                        // 房间成员形象
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(
