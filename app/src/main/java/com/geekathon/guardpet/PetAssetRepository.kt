@@ -62,6 +62,7 @@ class PetAssetRepository(private val context: Context) {
             .putBoolean(KEY_HAS_CUSTOM, true)
             .putString(KEY_CUSTOM_IDEA, idea.trim().take(120))
             .apply()
+        invalidateAppearanceSyncCache()
         return target
     }
 
@@ -72,20 +73,59 @@ class PetAssetRepository(private val context: Context) {
             .remove(KEY_CUSTOM_IDEA)
             .apply()
         restoreBundledDefaults()
+        invalidateAppearanceSyncCache()
     }
 
-    /** 用于好友同步的当前形象字节与短哈希。 */
+    /** 用于好友同步的当前形象字节与短哈希（会缩小；按源文件缓存，避免每次压缩哈希漂移）。 */
     fun appearancePayload(): Pair<String, ByteArray>? {
         val file = customAppearanceFile()
             ?: fileFor(PetState.IDLE)
-            ?: randomFileFor(PetState.IDLE)
+            ?: categoryFiles("random").firstOrNull()
             ?: return null
-        val bytes = runCatching { file.readBytes() }.getOrNull() ?: return null
-        if (bytes.isEmpty()) return null
-        return sha16(bytes) to bytes
+        val key = "${file.absolutePath}|${file.length()}|${file.lastModified()}"
+        synchronized(syncLock) {
+            val cachedHash = syncCacheHash
+            val cachedBytes = syncCacheBytes
+            if (key == syncCacheKey && cachedHash != null && cachedBytes != null) {
+                return cachedHash to cachedBytes
+            }
+            val raw = runCatching { file.readBytes() }.getOrNull() ?: return null
+            if (raw.isEmpty()) return null
+            val bytes = compressForFriendSync(raw) ?: raw
+            if (bytes.isEmpty()) return null
+            val hash = sha16(bytes)
+            syncCacheKey = key
+            syncCacheHash = hash
+            syncCacheBytes = bytes
+            return hash to bytes
+        }
     }
 
     fun appearanceHash(): String = appearancePayload()?.first.orEmpty()
+
+    private fun compressForFriendSync(raw: ByteArray): ByteArray? {
+        val bitmap = android.graphics.BitmapFactory.decodeByteArray(raw, 0, raw.size) ?: return null
+        val maxSide = 256
+        val scale = minOf(
+            1f,
+            maxSide.toFloat() / maxOf(bitmap.width, bitmap.height).coerceAtLeast(1)
+        )
+        val w = (bitmap.width * scale).toInt().coerceAtLeast(1)
+        val h = (bitmap.height * scale).toInt().coerceAtLeast(1)
+        val scaled = if (w == bitmap.width && h == bitmap.height) {
+            bitmap
+        } else {
+            android.graphics.Bitmap.createScaledBitmap(bitmap, w, h, true).also {
+                if (it !== bitmap && !bitmap.isRecycled) bitmap.recycle()
+            }
+        }
+        val out = java.io.ByteArrayOutputStream()
+        // 固定质量，尽量保证同图哈希稳定
+        scaled.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out)
+        if (!scaled.isRecycled) scaled.recycle()
+        val bytes = out.toByteArray()
+        return bytes.takeIf { it.isNotEmpty() }
+    }
 
     private fun customAppearanceFile(): File? {
         if (!preferences.getBoolean(KEY_HAS_CUSTOM, false)) return null
@@ -157,6 +197,19 @@ class PetAssetRepository(private val context: Context) {
         private const val KEY_CUSTOM_IDEA = "custom_appearance_idea"
         private const val CUSTOM_FILE_NAME = "custom_generated.png"
         private const val BUNDLED_VERSION = 3
+
+        private val syncLock = Any()
+        @Volatile private var syncCacheKey: String? = null
+        @Volatile private var syncCacheHash: String? = null
+        @Volatile private var syncCacheBytes: ByteArray? = null
+
+        fun invalidateAppearanceSyncCache() {
+            synchronized(syncLock) {
+                syncCacheKey = null
+                syncCacheHash = null
+                syncCacheBytes = null
+            }
+        }
 
         fun sha16(bytes: ByteArray): String {
             val dig = MessageDigest.getInstance("SHA-256").digest(bytes)

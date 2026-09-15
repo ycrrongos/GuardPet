@@ -8,7 +8,7 @@ import java.io.FileOutputStream
 /** 局域网同步的好友形象缓存：`filesDir/friend_avatars/<hash>.png`。 */
 object FriendAvatarCache {
     private const val DIR = "friend_avatars"
-    const val MAX_BYTES = 420_000
+    const val MAX_BYTES = 480_000
 
     fun dir(context: Context): File =
         File(context.applicationContext.filesDir, DIR).apply { mkdirs() }

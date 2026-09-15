@@ -40,6 +40,7 @@
     <string name="quick_tools">快捷工具</string>
     <string name="note_hint">写下容易忘记的事情</string>
     <string name="save_note">保存笔记</string>
+    <string name="flash_note_organize_save">AI 整理保存</string>
     <string name="save_schedule">保存日程</string>
     <string name="schedule_color_hint">日程颜色（点选）</string>
     <string name="schedule_change_color">换色</string>
@@ -193,6 +194,14 @@
     <string name="flash_note_empty">请先输入内容</string>
     <string name="flash_note_pick_category">请选择这段文字是干什么的</string>
     <string name="flash_note_saved">已保存到闪记</string>
+    <string name="flash_note_organizing">正在按分类整理…</string>
+    <string name="flash_note_organized_saved">已整理并保存</string>
+    <string name="flash_convert_to_schedule">转为日程</string>
+    <string name="flash_convert_to_todo">转为待办</string>
+    <string name="flash_converting">正在转换…</string>
+    <string name="flash_converted_schedule">已转为日程</string>
+    <string name="flash_converted_todo">已生成待办（灵感仍保留）</string>
+    <string name="flash_converted_schedule_keep_idea">已生成日程（灵感仍保留）</string>
     <string name="flash_note_empty_list">还没有闪记</string>
     <string name="category_schedule">日程</string>
     <string name="category_idea">灵感</string>

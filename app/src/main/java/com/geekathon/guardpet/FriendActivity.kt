@@ -312,6 +312,7 @@ private fun MemberAvatarCard(
                     val hash = member.pet.avatarHash
                     FriendAvatarCache.fileFor(context, hash)
                         ?: assets.fileFor(PetState.fromKey(member.pet.state))
+                        ?: assets.randomFileFor(PetState.fromKey(member.pet.state))
                 }
                 canvas.show(file)
                 canvas.fitPreviewToCanvas()
@@ -327,9 +328,15 @@ private fun MemberAvatarCard(
             maxLines = 1
         )
         Text(
-            text = "Lv.${member.pet.level} · 心情${member.pet.mood}",
+            text = "Lv.${member.pet.level} · 心${member.pet.mood} · 饱${member.pet.hunger}",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1
+        )
+        Text(
+            text = member.pet.state.ifBlank { "idle" },
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.outline,
             maxLines = 1
         )
     }

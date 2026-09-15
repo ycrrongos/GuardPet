@@ -41,12 +41,22 @@ class PetService : Service() {
     private var petView: PetCanvas? = null
     private var friendPetViews = linkedMapOf<String, PetCanvas>()
     private val friendShownKey = mutableMapOf<String, String>()
+    private val friendMotionKey = mutableMapOf<String, String>()
+    private val friendMotionAnimators = mutableMapOf<String, ObjectAnimator>()
+    private var lastPushedFriendState: FriendPetSnapshot? = null
     private var friendStopObserve: (() -> Unit)? = null
     private val friendHandler = Handler(Looper.getMainLooper())
     private val friendSyncTick = object : Runnable {
         override fun run() {
-            syncFriendPresence()
-            friendHandler.postDelayed(this, 2_500L)
+            try {
+                FriendClient.reportAnimState(currentState.key)
+                pushLocalFriendState(force = false)
+                layoutFriendOverlays()
+            } catch (t: Throwable) {
+                android.util.Log.w("PetService", "friend sync tick", t)
+            } finally {
+                friendHandler.postDelayed(this, 2_500L)
+            }
         }
     }
     private var idleAnimator: ObjectAnimator? = null
@@ -132,6 +142,7 @@ class PetService : Service() {
                 walkAnimator?.cancel()
                 petView?.show(assets.randomFileFor(currentState))
                 applyVisualState()
+                pushLocalFriendState(force = true)
                 if (currentState == PetState.SLEEP) {
                     idleAnimator?.cancel()
                 } else {
@@ -239,7 +250,8 @@ class PetService : Service() {
 
     private fun startFriendPresence() {
         friendStopObserve?.invoke()
-        friendStopObserve = FriendClient.observe { friendHandler.post { syncFriendPresence() } }
+        // 房间广播只刷新 overlay，不要回推自己的 state，避免互相打爆房间
+        friendStopObserve = FriendClient.observe { friendHandler.post { layoutFriendOverlays() } }
         friendHandler.removeCallbacks(friendSyncTick)
         friendHandler.post(friendSyncTick)
         val prefs = FriendPrefs(this)
@@ -252,27 +264,48 @@ class PetService : Service() {
         friendHandler.removeCallbacks(friendSyncTick)
         friendStopObserve?.invoke()
         friendStopObserve = null
+        lastPushedFriendState = null
         removeFriendPet()
     }
 
-    private fun syncFriendPresence() {
-        if (!::windowManager.isInitialized || petView == null) return
+    /** 心跳 + 本机动作变化时上报心情/饱食/状态。 */
+    private fun pushLocalFriendState(force: Boolean = false) {
+        if (!FriendClient.snapshot.connected) return
+        FriendClient.reportAnimState(currentState.key)
         val xp = HabitXpStore(this)
-        val avatarHash = assets.appearanceHash()
-        FriendClient.sendPetState(
-            FriendPetSnapshot(
-                mood = settings.mood,
-                hunger = settings.hunger,
-                food = settings.foodCount,
-                level = xp.level,
-                xp = xp.xp,
-                state = currentState.key,
-                avatarHash = avatarHash
-            )
+        val next = FriendPetSnapshot(
+            mood = settings.mood,
+            hunger = settings.hunger,
+            food = settings.foodCount,
+            level = xp.level,
+            xp = xp.xp,
+            state = currentState.key,
+            avatarHash = assets.appearanceHash()
         )
-        if (FriendClient.snapshot.connected) {
-            FriendClient.pushLocalAvatar(this, force = false)
+        val prev = lastPushedFriendState
+        if (!force && prev != null &&
+            prev.mood == next.mood &&
+            prev.hunger == next.hunger &&
+            prev.food == next.food &&
+            prev.level == next.level &&
+            prev.xp == next.xp &&
+            prev.state == next.state &&
+            prev.avatarHash == next.avatarHash
+        ) {
+            return
         }
+        lastPushedFriendState = next
+        FriendClient.sendPetState(next)
+        FriendClient.pushLocalAvatar(this, force = false)
+    }
+
+    private fun syncFriendPresence() {
+        pushLocalFriendState(force = false)
+        layoutFriendOverlays()
+    }
+
+    private fun layoutFriendOverlays() {
+        if (!::windowManager.isInitialized || petView == null) return
         val friends = FriendClient.otherMembers().take(MAX_FRIEND_OVERLAYS)
         val keep = friends.map { it.userId }.toSet()
         friendPetViews.keys.filter { it !in keep }.toList().forEach { removeFriendPet(it) }
@@ -317,19 +350,35 @@ class PetService : Service() {
             fp.y = selfParams.y
             runCatching { windowManager.updateViewLayout(canvas, fp) }
 
+            val remoteState = PetState.fromKey(friend.pet.state)
             val hash = friend.pet.avatarHash
-            val file: File? = when {
-                hash.isNotBlank() -> FriendAvatarCache.fileFor(this, hash)
-                else -> null
-            } ?: assets.fileFor(PetState.fromKey(friend.pet.state))
-                ?: assets.randomFileFor(PetState.fromKey(friend.pet.state))
+            val cached = if (hash.isNotBlank()) FriendAvatarCache.fileFor(this, hash) else null
+            val file: File? = cached
+                ?: assets.fileFor(remoteState)
+                ?: assets.randomFileFor(remoteState)
 
-            val showKey = "${hash.ifBlank { "local" }}:${friend.pet.state}:${file?.absolutePath.orEmpty()}"
-            if (friendShownKey[friend.userId] != showKey) {
-                canvas.show(file)
-                friendShownKey[friend.userId] = showKey
+            // 形象文件与动作分离：有定制图时仍跟对方 state 做动效，避免永远静止
+            val assetKey = if (cached != null) {
+                "avatar:$hash"
+            } else {
+                "fallback:${remoteState.key}:${file?.absolutePath.orEmpty()}"
             }
-            canvas.setVisualScale(settings.petScale * 0.92f, 0.92f)
+            if (friendShownKey[friend.userId] != assetKey) {
+                canvas.show(file)
+                friendShownKey[friend.userId] = assetKey
+            }
+            val motionKey =
+                "$assetKey:${remoteState.key}:${friend.pet.mood / 5}:${friend.pet.hunger / 5}"
+            if (friendMotionKey[friend.userId] != motionKey) {
+                applyFriendRemoteVisual(
+                    friend.userId,
+                    canvas,
+                    remoteState,
+                    friend.pet.mood,
+                    friend.pet.hunger
+                )
+                friendMotionKey[friend.userId] = motionKey
+            }
             canvas.contentDescription = getString(R.string.friend_pet_content_desc, friend.name)
             canvas.setOnClickListener {
                 val p = friend.pet
@@ -342,14 +391,85 @@ class PetService : Service() {
                         p.mood,
                         p.hunger,
                         p.food
-                    ),
+                    ) + " · ${remoteState.key}",
                     Toast.LENGTH_LONG
                 ).show()
             }
         }
     }
 
+    private fun applyFriendRemoteVisual(
+        userId: String,
+        canvas: PetCanvas,
+        state: PetState,
+        mood: Int,
+        hunger: Int
+    ) {
+        friendMotionAnimators.remove(userId)?.cancel()
+        canvas.animate().cancel()
+        canvas.translationX = 0f
+        canvas.translationY = 0f
+        canvas.rotation = 0f
+        val density = resources.displayMetrics.density
+        val baseScale = settings.petScale * 0.92f
+        when (state) {
+            PetState.SLEEP, PetState.HIDDEN -> {
+                canvas.setVisualScale(baseScale * 0.88f, 0.5f)
+                canvas.translationY = 8f * density
+            }
+            PetState.SAD, PetState.BORED -> {
+                canvas.setVisualScale(baseScale * 0.94f, 0.82f)
+                startFriendBob(userId, canvas, 4f * density, 2600L)
+            }
+            PetState.ANGRY -> {
+                canvas.setVisualScale(baseScale * 1.04f, 1f)
+                friendMotionAnimators[userId] = ObjectAnimator.ofFloat(
+                    canvas,
+                    View.TRANSLATION_X,
+                    -5f * density,
+                    5f * density
+                ).apply {
+                    duration = 100
+                    repeatCount = ObjectAnimator.INFINITE
+                    repeatMode = ValueAnimator.REVERSE
+                    start()
+                }
+            }
+            PetState.WALK -> {
+                canvas.setVisualScale(baseScale, 0.95f)
+                startFriendBob(userId, canvas, 5f * density, 420L)
+            }
+            PetState.HAPPY, PetState.PLAY, PetState.TOUCH, PetState.PET, PetState.FEED -> {
+                canvas.setVisualScale(baseScale * 1.06f, 1f)
+                startFriendBob(userId, canvas, 12f * density, 850L)
+            }
+            else -> {
+                val dim = if (hunger < 25) 0.8f else 0.95f
+                canvas.setVisualScale(baseScale, dim)
+                val amp = if (mood >= 50) 8f * density else 5f * density
+                startFriendBob(userId, canvas, amp, if (hunger < 30) 2300L else 1700L)
+            }
+        }
+    }
+
+    private fun startFriendBob(userId: String, canvas: PetCanvas, amplitude: Float, durationMs: Long) {
+        friendMotionAnimators[userId] = ObjectAnimator.ofFloat(
+            canvas,
+            View.TRANSLATION_Y,
+            0f,
+            -amplitude,
+            0f
+        ).apply {
+            duration = durationMs
+            repeatCount = ObjectAnimator.INFINITE
+            interpolator = AccelerateDecelerateInterpolator()
+            start()
+        }
+    }
+
     private fun removeFriendPet(userId: String) {
+        friendMotionAnimators.remove(userId)?.cancel()
+        friendMotionKey.remove(userId)
         friendPetViews.remove(userId)?.let { runCatching { windowManager.removeView(it) } }
         friendShownKey.remove(userId)
     }
@@ -674,6 +794,7 @@ class PetService : Service() {
         currentState = PetState.WALK
         view.show(assets.randomFileFor(PetState.WALK))
         applyVisualState()
+        pushLocalFriendState(force = true)
         // The directional walk GIF faces left in its source file. Mirror once per leg only.
         val movingRight = targetX >= startX
         view.setFacingRight(!movingRight)
@@ -685,7 +806,7 @@ class PetService : Service() {
                 params.x = (startX + (targetX - startX) * p).toInt().coerceIn(0, maxX)
                 params.y = (startY + (targetY - startY) * p).toInt().coerceIn(0, maxY)
                 windowManager.updateViewLayout(view, params)
-                syncFriendPresence()
+                layoutFriendOverlays()
             }
             addListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationCancel(animation: Animator) {
@@ -717,6 +838,7 @@ class PetService : Service() {
         }
         petView?.show(assets.randomFileFor(currentState))
         applyVisualState()
+        pushLocalFriendState(force = true)
     }
 
     private fun evaluateLocalTime() {
@@ -758,6 +880,7 @@ class PetService : Service() {
         walkAnimator?.cancel()
         petView?.show(assets.randomFileFor(currentState))
         applyVisualState()
+        pushLocalFriendState(force = true)
         if (currentState == PetState.SLEEP) {
             idleAnimator?.cancel()
         } else {
@@ -828,6 +951,7 @@ class PetService : Service() {
         currentState = state
         petView?.show(assets.randomFileFor(state))
         applyVisualState()
+        pushLocalFriendState(force = true)
         if (state == PetState.SLEEP) {
             idleAnimator?.cancel()
             walkAnimator?.cancel()
@@ -966,7 +1090,7 @@ class PetService : Service() {
                         (screen.heightPixels - view.height).coerceAtLeast(0)
                     )
                     runCatching { windowManager.updateViewLayout(view, params) }
-                    syncFriendPresence()
+                    layoutFriendOverlays()
                     if (!shakeFired && reverseCount >= SHAKE_REVERSES) {
                         shakeFired = true
                         tapHandler.removeCallbacks(holdRunnable)
@@ -1036,6 +1160,7 @@ class PetService : Service() {
         currentState = PetState.TOUCH
         petView?.show(assets.randomFileFor(PetState.TOUCH))
         applyVisualState()
+        pushLocalFriendState(force = true)
         petView?.animate()?.scaleX(1.08f)?.scaleY(1.08f)?.setDuration(120)?.withEndAction {
             petView?.animate()?.scaleX(1f)?.scaleY(1f)?.setDuration(180)?.start()
         }?.start()

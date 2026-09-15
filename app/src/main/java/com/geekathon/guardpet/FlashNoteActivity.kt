@@ -254,17 +254,35 @@ class FlashNoteActivity : AppCompatActivity() {
             }.start()
             return
         }
-        FlashNoteStore.insert(
-            FlashNote(
-                text = text,
-                category = category,
-                source = source,
-                scheduleDate = null,
-                color = if (category == FlashNoteCategory.TODO) 2 else 0
-            )
-        )
-        Toast.makeText(this, R.string.flash_note_saved, Toast.LENGTH_SHORT).show()
-        finish()
+        binding.saveButton.isEnabled = false
+        Toast.makeText(this, R.string.flash_note_organizing, Toast.LENGTH_SHORT).show()
+        val fallbackColor = if (category == FlashNoteCategory.TODO) 2 else 0
+        Thread {
+            val organized = FlashNoteLlmClient.organize(text, category, scheduleDate)
+            Handler(Looper.getMainLooper()).post {
+                binding.saveButton.isEnabled = true
+                FlashNoteStore.insert(
+                    FlashNote(
+                        text = organized.text,
+                        category = category,
+                        source = source,
+                        scheduleDate = null,
+                        color = if (category == FlashNoteCategory.TODO) {
+                            organized.color.coerceIn(0, 5).takeIf { organized.color in 0..5 }
+                                ?: fallbackColor
+                        } else {
+                            0
+                        }
+                    )
+                )
+                Toast.makeText(
+                    this,
+                    organized.warning ?: getString(R.string.flash_note_organized_saved),
+                    Toast.LENGTH_SHORT
+                ).show()
+                finish()
+            }
+        }.start()
     }
 
     companion object {

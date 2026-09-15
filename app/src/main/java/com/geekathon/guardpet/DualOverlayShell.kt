@@ -35,6 +35,7 @@ object DualOverlayShell {
         if (flashPanel === panel && panel.parent === h) {
             panel.visibility = View.VISIBLE
             panel.alpha = 1f
+            applyFrontElevation()
             return
         }
         detachFlashViewOnly()
@@ -51,6 +52,7 @@ object DualOverlayShell {
         }
         panel.visibility = View.VISIBLE
         panel.alpha = 1f
+        panel.setTag(R.id.overlay_side_tag, OverlayLayerCoordinator.Side.FLASH)
         h.addView(panel, lp)
         applyFrontElevation()
     }
@@ -61,6 +63,7 @@ object DualOverlayShell {
         if (schedulePanel === panel && panel.parent === h) {
             panel.visibility = View.VISIBLE
             panel.alpha = 1f
+            applyFrontElevation()
             return
         }
         detachScheduleViewOnly()
@@ -77,6 +80,7 @@ object DualOverlayShell {
         }
         panel.visibility = View.VISIBLE
         panel.alpha = 1f
+        panel.setTag(R.id.overlay_side_tag, OverlayLayerCoordinator.Side.SCHEDULE)
         h.addView(panel, lp)
         applyFrontElevation()
     }
@@ -134,12 +138,16 @@ object DualOverlayShell {
         when (front) {
             OverlayLayerCoordinator.Side.FLASH -> {
                 schedule?.elevation = ELEVATION_BACK
+                schedule?.translationZ = ELEVATION_BACK
                 flash?.elevation = ELEVATION_FRONT
+                flash?.translationZ = ELEVATION_FRONT
                 flash?.bringToFront()
             }
             OverlayLayerCoordinator.Side.SCHEDULE -> {
                 flash?.elevation = ELEVATION_BACK
+                flash?.translationZ = ELEVATION_BACK
                 schedule?.elevation = ELEVATION_FRONT
+                schedule?.translationZ = ELEVATION_FRONT
                 schedule?.bringToFront()
             }
         }

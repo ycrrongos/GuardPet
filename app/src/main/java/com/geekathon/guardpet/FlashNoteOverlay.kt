@@ -247,6 +247,7 @@ class FlashNoteOverlay(private val app: Context) {
             onEnd()
             return
         }
+        val finish = onceCallback(onEnd, EXIT_DURATION_MS + items.size * ENTRANCE_STAGGER_MS + 80L)
         val outX = slideDistance()
         val lastIndex = items.lastIndex
         items.forEachIndexed { index, view ->
@@ -259,7 +260,7 @@ class FlashNoteOverlay(private val app: Context) {
                 .setDuration(EXIT_DURATION_MS)
                 .setInterpolator(AccelerateInterpolator())
                 .withEndAction {
-                    if (index == 0) onEnd()
+                    if (index == 0) finish()
                 }
                 .start()
         }
@@ -276,6 +277,7 @@ class FlashNoteOverlay(private val app: Context) {
             onEnd()
             return
         }
+        val finish = onceCallback(onEnd, ENTRANCE_DURATION_MS + items.size * ENTRANCE_STAGGER_MS + 80L)
         items.forEachIndexed { index, view ->
             view.animate().cancel()
             view.translationX = slideDistance()
@@ -287,7 +289,7 @@ class FlashNoteOverlay(private val app: Context) {
                 .setDuration(ENTRANCE_DURATION_MS)
                 .setInterpolator(OvershootInterpolator(1.15f))
                 .withEndAction {
-                    if (index == items.lastIndex) onEnd()
+                    if (index == items.lastIndex) finish()
                 }
                 .start()
         }
@@ -593,6 +595,20 @@ class FlashNoteOverlay(private val app: Context) {
 
     private fun slideDistance() = ENTRANCE_FROM_DP * app.resources.displayMetrics.density
 
+    private fun onceCallback(onEnd: () -> Unit, timeoutMs: Long): () -> Unit {
+        val done = java.util.concurrent.atomic.AtomicBoolean(false)
+        val once: () -> Unit = {
+            if (done.compareAndSet(false, true)) {
+                handler.removeCallbacksAndMessages(onceToken)
+                onEnd()
+            }
+        }
+        handler.postAtTime(once, onceToken, android.os.SystemClock.uptimeMillis() + timeoutMs)
+        return once
+    }
+
+    private val onceToken = Any()
+
     private fun cancelAllOverlayAnimations(resetVisible: Boolean = true) {
         entranceChromeViews().forEach { view ->
             view.animate().cancel()
@@ -644,6 +660,7 @@ class FlashNoteOverlay(private val app: Context) {
             card.expandedColors.removeAllViews()
             card.expandedColors.visibility = View.GONE
         }
+        bindConvertActions(card, note)
         card.collapseButton.setOnClickListener {
             FlashNoteHud.noteInteraction()
             if (closing) return@setOnClickListener
@@ -668,6 +685,109 @@ class FlashNoteOverlay(private val app: Context) {
             animateCardExpand(card)
         }
         return card.root
+    }
+
+    private fun bindConvertActions(card: OverlayFlashNoteCardBinding, note: FlashNote) {
+        val showSchedule = note.category == FlashNoteCategory.TODO ||
+            note.category == FlashNoteCategory.IDEA
+        val showTodo = note.category == FlashNoteCategory.IDEA
+        if (!showSchedule && !showTodo) {
+            card.convertRow.visibility = View.GONE
+            return
+        }
+        card.convertRow.visibility = View.VISIBLE
+        card.convertToScheduleButton.visibility = if (showSchedule) View.VISIBLE else View.GONE
+        card.convertToTodoButton.visibility = if (showTodo) View.VISIBLE else View.GONE
+        card.convertToScheduleButton.setOnClickListener {
+            FlashNoteHud.noteInteraction()
+            convertNoteToSchedule(note)
+        }
+        card.convertToTodoButton.setOnClickListener {
+            FlashNoteHud.noteInteraction()
+            convertIdeaToTodo(note)
+        }
+    }
+
+    /** 待办→日程（成功后删除待办）；灵感→日程（保留灵感）。 */
+    private fun convertNoteToSchedule(note: FlashNote) {
+        val keepIdea = note.category == FlashNoteCategory.IDEA
+        Toast.makeText(app, R.string.flash_converting, Toast.LENGTH_SHORT).show()
+        val date = LocalDate.now()
+        Thread {
+            val (drafts, warn) = ScheduleLlmClient.parseFromFlashNote(note.text, date)
+            Handler(Looper.getMainLooper()).post {
+                if (warn != null) {
+                    Toast.makeText(app, warn, Toast.LENGTH_SHORT).show()
+                }
+                if (drafts.isEmpty()) {
+                    Toast.makeText(app, R.string.schedule_parse_empty, Toast.LENGTH_SHORT).show()
+                    return@post
+                }
+                if (drafts.any { it.needsTime || it.startMinutes == null }) {
+                    ScheduleHud.showFillTimes(app, drafts, note.text, date) {
+                        if (!keepIdea) {
+                            FlashNoteStore.delete(note.id)
+                            if (expandedId == note.id) expandedId = null
+                            bindNotes()
+                        }
+                    }
+                    OverlayLayerCoordinator.noteUserOn(OverlayLayerCoordinator.Side.SCHEDULE)
+                    return@post
+                }
+                Thread {
+                    val (n, err) = ScheduleLlmClient.commitDrafts(drafts, date, note.text)
+                    Handler(Looper.getMainLooper()).post {
+                        if (err != null) {
+                            Toast.makeText(app, err, Toast.LENGTH_LONG).show()
+                            return@post
+                        }
+                        if (!keepIdea) {
+                            FlashNoteStore.delete(note.id)
+                            if (expandedId == note.id) expandedId = null
+                        }
+                        Toast.makeText(
+                            app,
+                            if (keepIdea) {
+                                app.getString(R.string.flash_converted_schedule_keep_idea)
+                            } else {
+                                app.getString(R.string.flash_converted_schedule)
+                            } + " · $n",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        ScheduleHud.show(app)
+                        ScheduleHud.refresh()
+                        bindNotes()
+                        OverlayLayerCoordinator.noteUserOn(OverlayLayerCoordinator.Side.SCHEDULE)
+                    }
+                }.start()
+            }
+        }.start()
+    }
+
+    /** 灵感→待办：新插一条待办，灵感保留。 */
+    private fun convertIdeaToTodo(note: FlashNote) {
+        if (note.category != FlashNoteCategory.IDEA) return
+        Toast.makeText(app, R.string.flash_converting, Toast.LENGTH_SHORT).show()
+        Thread {
+            val organized = FlashNoteLlmClient.organize(note.text, FlashNoteCategory.TODO)
+            Handler(Looper.getMainLooper()).post {
+                FlashNoteStore.insert(
+                    FlashNote(
+                        text = organized.text,
+                        category = FlashNoteCategory.TODO,
+                        source = "from_idea",
+                        color = organized.color.coerceIn(0, 5),
+                        audioPath = null
+                    )
+                )
+                Toast.makeText(
+                    app,
+                    organized.warning ?: app.getString(R.string.flash_converted_todo),
+                    Toast.LENGTH_LONG
+                ).show()
+                bindNotes()
+            }
+        }.start()
     }
 
     private fun findCard(noteId: Long): OverlayFlashNoteCardBinding? {
@@ -859,10 +979,9 @@ class FlashNoteOverlay(private val app: Context) {
 
     private fun updateSaveButtonLabel() {
         binding.composerSaveButton.setText(
-            if (composerCategory == FlashNoteCategory.SCHEDULE) {
-                R.string.save_schedule
-            } else {
-                R.string.save_note
+            when (composerCategory) {
+                FlashNoteCategory.SCHEDULE -> R.string.save_schedule
+                else -> R.string.flash_note_organize_save
             }
         )
     }
@@ -1149,23 +1268,42 @@ class FlashNoteOverlay(private val app: Context) {
             }.start()
             return
         }
-        val colorIndex = if (composerCategory == FlashNoteCategory.TODO) composerColor else 0
-        FlashNoteStore.insert(
-            FlashNote(
-                text = text,
-                category = composerCategory,
-                source = composerSource,
-                scheduleDate = null,
-                color = colorIndex,
-                audioPath = recordedPath
-            )
-        )
-        Toast.makeText(app, R.string.flash_note_saved, Toast.LENGTH_SHORT).show()
-        binding.composerInput.setText("")
-        recordedPath = null
-        composerSource = "typed"
-        setComposerVisible(false, animated = true)
-        bindNotes()
+        // 其它分类：按类型 AI 整理后再写入闪记
+        val category = composerCategory
+        val path = recordedPath
+        val source = composerSource
+        val fallbackColor = if (category == FlashNoteCategory.TODO) composerColor else 0
+        Toast.makeText(app, R.string.flash_note_organizing, Toast.LENGTH_SHORT).show()
+        Thread {
+            val organized = FlashNoteLlmClient.organize(text, category, scheduleDate)
+            Handler(Looper.getMainLooper()).post {
+                val colorIndex = if (category == FlashNoteCategory.TODO) {
+                    if (organized.color in 0..5) organized.color else fallbackColor
+                } else {
+                    0
+                }
+                FlashNoteStore.insert(
+                    FlashNote(
+                        text = organized.text,
+                        category = category,
+                        source = source,
+                        scheduleDate = null,
+                        color = colorIndex,
+                        audioPath = path
+                    )
+                )
+                Toast.makeText(
+                    app,
+                    organized.warning ?: app.getString(R.string.flash_note_organized_saved),
+                    Toast.LENGTH_SHORT
+                ).show()
+                binding.composerInput.setText("")
+                recordedPath = null
+                composerSource = "typed"
+                setComposerVisible(false, animated = true)
+                bindNotes()
+            }
+        }.start()
     }
 
     private fun pickDate() {

@@ -28,6 +28,9 @@ object ScheduleHud {
     @Volatile
     private var overlay: ScheduleOverlay? = null
 
+    @Volatile
+    private var pendingAfterCommit: (() -> Unit)? = null
+
     fun show(context: Context) {
         if (!Settings.canDrawOverlays(context)) return
         val app = context.applicationContext
@@ -39,10 +42,23 @@ object ScheduleHud {
         overlay?.close()
     }
 
-    fun showFillTimes(context: Context, drafts: List<ScheduleDraft>, rawNote: String, date: LocalDate) {
+    fun showFillTimes(
+        context: Context,
+        drafts: List<ScheduleDraft>,
+        rawNote: String,
+        date: LocalDate,
+        afterCommit: (() -> Unit)? = null
+    ) {
+        pendingAfterCommit = afterCommit
         show(context)
         overlay?.beginFillTimes(drafts, rawNote, date)
         OverlayLayerCoordinator.noteUserOn(OverlayLayerCoordinator.Side.SCHEDULE)
+    }
+
+    internal fun consumeAfterCommit() {
+        val cb = pendingAfterCommit
+        pendingAfterCommit = null
+        cb?.invoke()
     }
 
     fun refresh() {
@@ -148,6 +164,7 @@ class ScheduleOverlay(private val app: Context) {
             onEnd()
             return
         }
+        val finish = onceCallback(onEnd, EXIT_DURATION_MS + items.size * ENTRANCE_STAGGER_MS + 80L)
         val outX = -slideDistance()
         val lastIndex = items.lastIndex
         items.forEachIndexed { index, view ->
@@ -160,7 +177,7 @@ class ScheduleOverlay(private val app: Context) {
                 .setDuration(EXIT_DURATION_MS)
                 .setInterpolator(AccelerateInterpolator())
                 .withEndAction {
-                    if (index == 0) onEnd()
+                    if (index == 0) finish()
                 }
                 .start()
         }
@@ -176,6 +193,7 @@ class ScheduleOverlay(private val app: Context) {
             onEnd()
             return
         }
+        val finish = onceCallback(onEnd, ENTRANCE_DURATION_MS + items.size * ENTRANCE_STAGGER_MS + 80L)
         items.forEachIndexed { index, view ->
             view.animate().cancel()
             view.translationX = -slideDistance()
@@ -187,7 +205,7 @@ class ScheduleOverlay(private val app: Context) {
                 .setDuration(ENTRANCE_DURATION_MS)
                 .setInterpolator(OvershootInterpolator(1.15f))
                 .withEndAction {
-                    if (index == items.lastIndex) onEnd()
+                    if (index == items.lastIndex) finish()
                 }
                 .start()
         }
@@ -414,6 +432,7 @@ class ScheduleOverlay(private val app: Context) {
                     pendingDrafts.clear()
                     binding.scheduleFillPanel.visibility = View.GONE
                     refreshList()
+                    ScheduleHud.consumeAfterCommit()
                 }
             }
         }
@@ -906,6 +925,20 @@ class ScheduleOverlay(private val app: Context) {
     }
 
     private fun slideDistance() = ENTRANCE_FROM_DP * app.resources.displayMetrics.density
+
+    private fun onceCallback(onEnd: () -> Unit, timeoutMs: Long): () -> Unit {
+        val done = java.util.concurrent.atomic.AtomicBoolean(false)
+        val once: () -> Unit = {
+            if (done.compareAndSet(false, true)) {
+                handler.removeCallbacksAndMessages(onceToken)
+                onEnd()
+            }
+        }
+        handler.postAtTime(once, onceToken, android.os.SystemClock.uptimeMillis() + timeoutMs)
+        return once
+    }
+
+    private val onceToken = Any()
 
     private fun dp(v: Float) = v * app.resources.displayMetrics.density
 

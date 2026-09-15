@@ -1,5 +1,10 @@
 package com.geekathon.guardpet
 
+import android.os.Handler
+import android.os.Looper
+import android.os.SystemClock
+import java.util.concurrent.atomic.AtomicBoolean
+
 /**
  * 左日程 / 右闪记 叠层与临时隐藏。
  *
@@ -8,6 +13,8 @@ package com.geekathon.guardpet
  */
 object OverlayLayerCoordinator {
     enum class Side { FLASH, SCHEDULE }
+
+    private const val SWITCH_WATCHDOG_MS = 1_200L
 
     @Volatile
     private var front: Side = Side.FLASH
@@ -19,13 +26,29 @@ object OverlayLayerCoordinator {
     private var pending: Side? = null
 
     @Volatile
+    private var switchStartedAt = 0L
+
+    @Volatile
     var hiddenForTimePicker: Boolean = false
         private set
 
-    private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private val watchdog = Runnable {
+        if (!switching) return@Runnable
+        // 收边/展开动画 onEnd 丢失时会死锁，强制收尾
+        switching = false
+        DualOverlayShell.bringSideToFront(front)
+        drainPending()
+    }
+
+    fun currentFront(): Side = front
 
     fun noteUserOn(side: Side) {
         if (hiddenForTimePicker) return
+        if (switching && SystemClock.elapsedRealtime() - switchStartedAt > SWITCH_WATCHDOG_MS) {
+            mainHandler.removeCallbacks(watchdog)
+            switching = false
+        }
         if (!switching && front == side) return
         mainHandler.post { bringToFront(side, animated = true) }
     }
@@ -33,25 +56,39 @@ object OverlayLayerCoordinator {
     fun bringToFront(side: Side, animated: Boolean = true) {
         if (hiddenForTimePicker) return
         if (switching) {
-            pending = side
+            if (SystemClock.elapsedRealtime() - switchStartedAt > SWITCH_WATCHDOG_MS) {
+                mainHandler.removeCallbacks(watchdog)
+                switching = false
+            } else {
+                pending = side
+                return
+            }
+        }
+        if (front == side) {
+            DualOverlayShell.bringSideToFront(side)
             return
         }
-        if (front == side) return
         if (!animated) {
             front = side
             DualOverlayShell.bringSideToFront(side)
             return
         }
         switching = true
+        switchStartedAt = SystemClock.elapsedRealtime()
         pending = null
+        mainHandler.removeCallbacks(watchdog)
+        mainHandler.postDelayed(watchdog, SWITCH_WATCHDOG_MS)
         val demote = if (side == Side.FLASH) Side.SCHEDULE else Side.FLASH
+        val finish = once {
+            switching = false
+            mainHandler.removeCallbacks(watchdog)
+            DualOverlayShell.bringSideToFront(front)
+            drainPending()
+        }
         retract(demote) {
             front = side
             DualOverlayShell.bringSideToFront(side)
-            expand(demote) {
-                switching = false
-                drainPending()
-            }
+            expand(demote, finish)
         }
     }
 
@@ -87,6 +124,15 @@ object OverlayLayerCoordinator {
         when (side) {
             Side.FLASH -> FlashNoteHud.expandFromEdge(onEnd)
             Side.SCHEDULE -> ScheduleHud.expandFromEdge(onEnd)
+        }
+    }
+
+    private fun once(block: () -> Unit): () -> Unit {
+        val done = AtomicBoolean(false)
+        return {
+            if (done.compareAndSet(false, true)) {
+                mainHandler.post(block)
+            }
         }
     }
 }
