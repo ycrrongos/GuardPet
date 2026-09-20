@@ -48,7 +48,7 @@ object HabitAgent {
     }
 
     private fun refreshBlocking(context: Context, reason: String): Pair<Boolean, String> {
-        if (!HabitPolicyStore.agentEnabled) return false to "作息守护已关闭"
+        if (!HabitPolicyStore.agentEnabled) return false to "习惯守护已关闭"
         if (HabitPolicyStore.llmApiKey.isBlank()) {
             ensureSeedPolicy()
             return false to "未配置 API Key，已使用本地种子策略"

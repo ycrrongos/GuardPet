@@ -4,6 +4,7 @@ import android.content.ContentProvider
 import android.content.ContentValues
 import android.database.Cursor
 import android.net.Uri
+import dev.pranav.reef.timer.OverlayFocusSession
 import dev.pranav.reef.util.HabitHook
 import dev.pranav.reef.util.KeyEventHook
 import java.io.File
@@ -26,6 +27,17 @@ class GuardInitProvider : ContentProvider() {
             PetBlockBubble.handle(ctx, kind, pkg, reason)
         }
         VolumeChordFlashNote.install(appContext)
+        OverlayFocusSession.shared.addOnFocusStarted {
+            HabitRewardTracker.onFocusSessionStarted()
+        }
+        OverlayFocusSession.shared.addOnFocusCompleted {
+            HabitRewardTracker.onFocusSessionCompleted(appContext)
+            android.widget.Toast.makeText(
+                appContext,
+                appContext.getString(R.string.focus_complete),
+                android.widget.Toast.LENGTH_LONG
+            ).show()
+        }
         KeyEventHook.filter = { ctx, event -> VolumeChordFlashNote.onKeyEvent(ctx, event) }
         KeyEventHook.onServiceDisconnected = { VolumeChordFlashNote.reset() }
         HabitAgent.scheduleInitial(appContext)

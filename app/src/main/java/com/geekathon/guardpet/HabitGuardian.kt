@@ -125,7 +125,7 @@ object HabitGuardian {
                         context,
                         packageName,
                         key = "$packageName:pkg",
-                        reason = policyRule.reason.ifBlank { "作息守护：已限制此应用" },
+                        reason = policyRule.reason.ifBlank { "习惯守护：已限制此应用" },
                         sleepLock = false,
                         pressBack = false
                     )
@@ -158,7 +158,7 @@ object HabitGuardian {
                 context,
                 packageName,
                 key = "$packageName:night",
-                reason = "作息守护：夜间限制娱乐应用",
+                reason = "习惯守护：夜间限制娱乐应用",
                 sleepLock = false,
                 pressBack = false
             )
@@ -170,7 +170,7 @@ object HabitGuardian {
                     context,
                     packageName,
                     key = "$packageName:sleep",
-                    reason = "作息守护：该睡觉了",
+                    reason = "习惯守护：该睡觉了",
                     sleepLock = true,
                     pressBack = false
                 )
@@ -181,7 +181,7 @@ object HabitGuardian {
                         context,
                         packageName,
                         key = "$packageName:schedule",
-                        reason = "作息守护：今夜日程期间限制娱乐应用",
+                        reason = "习惯守护：今夜日程期间限制娱乐应用",
                         sleepLock = false,
                         pressBack = false
                     )
@@ -220,7 +220,7 @@ object HabitGuardian {
                     packageName,
                     key = "$packageName:ent",
                     reason = rule?.reason?.ifBlank { null }
-                        ?: "作息守护：工作时段禁用娱乐应用",
+                        ?: "习惯守护：工作时段禁用娱乐应用",
                     sleepLock = false,
                     pressBack = false
                 )
@@ -271,7 +271,7 @@ object HabitGuardian {
                     context,
                     packageName,
                     key = "$packageName:video_meta:$hint",
-                    reason = "作息守护：娱乐向视频「${hint.take(20)}」",
+                    reason = "习惯守护：娱乐向视频「${hint.take(20)}」",
                     sleepLock = false,
                     watched = true,
                     pressBack = true
@@ -283,7 +283,7 @@ object HabitGuardian {
                             context,
                             packageName,
                             key = "$packageName:${hit.rule.id}",
-                            reason = "作息守护：娱乐内容「${hit.matchedText.take(24)}」",
+                            reason = "习惯守护：娱乐内容「${hit.matchedText.take(24)}」",
                             sleepLock = false,
                             watched = true,
                             pressBack = true
@@ -308,7 +308,7 @@ object HabitGuardian {
             context,
             packageName,
             key = "$packageName:video_nonsearch",
-            reason = "作息守护：视频应用仅允许搜索",
+            reason = "习惯守护：视频应用仅允许搜索",
             sleepLock = false,
             watched = true,
             pressBack = true
@@ -336,7 +336,7 @@ object HabitGuardian {
                 context,
                 packageName,
                 key = "$packageName:active:${activeHit.activity}",
-                reason = "作息守护：禁用「${activeHit.label}」",
+                reason = "习惯守护：禁用「${activeHit.label}」",
                 sleepLock = false,
                 watched = true,
                 pressBack = true
@@ -356,7 +356,7 @@ object HabitGuardian {
                     context,
                     packageName,
                     key = "$packageName:page:${uncertain.activity}",
-                    reason = "作息守护：禁用「${uncertain.label}」",
+                    reason = "习惯守护：禁用「${uncertain.label}」",
                     sleepLock = false,
                     watched = true,
                     pressBack = true
@@ -374,7 +374,7 @@ object HabitGuardian {
                     context,
                     packageName,
                     key = "$packageName:${hit.rule.id}",
-                    reason = "作息守护：${hit.rule.label}",
+                    reason = "习惯守护：${hit.rule.label}",
                     sleepLock = false,
                     watched = true,
                     pressBack = true

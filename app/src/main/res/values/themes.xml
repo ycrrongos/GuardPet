@@ -38,6 +38,19 @@
         <item name="android:windowExitAnimation">@anim/bigbang_exit</item>
     </style>
 
+    <style name="Theme.DesktopPet.Overlay" parent="Theme.Material3.Light.NoActionBar">
+        <item name="colorPrimary">@color/md3_primary</item>
+        <item name="colorOnPrimary">@color/md3_on_primary</item>
+        <item name="colorPrimaryContainer">@color/md3_primary_container</item>
+        <item name="colorSurface">@color/md3_surface</item>
+        <item name="colorOnSurface">@color/md3_on_surface</item>
+        <item name="colorOnSurfaceVariant">@color/md3_on_surface_variant</item>
+        <item name="colorOutlineVariant">@color/md3_outline_variant</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+
     <style name="Theme.DesktopPet.Ghost" parent="Theme.MaterialComponents.Light.NoActionBar">
         <item name="android:windowIsTranslucent">true</item>
         <item name="android:windowBackground">@android:color/transparent</item>

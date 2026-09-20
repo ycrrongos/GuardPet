@@ -24,8 +24,8 @@
         android:maxLines="3"
         android:minHeight="48dp"
         android:padding="8dp"
-        android:textColor="@color/text_primary"
-        android:textColorHint="@color/text_secondary"
+        android:textColor="@color/md3_on_surface"
+        android:textColorHint="@color/md3_on_surface_variant"
         android:textSize="14sp" />
 
     <LinearLayout
@@ -45,7 +45,7 @@
             android:padding="13dp"
             android:src="@drawable/ic_check_line"
             app:backgroundTint="@null"
-            app:tint="@color/brand_primary" />
+            app:tint="@color/md3_primary" />
 
         <androidx.appcompat.widget.AppCompatImageButton
             android:id="@+id/todoDelete"
@@ -56,6 +56,6 @@
             android:padding="13dp"
             android:src="@drawable/ic_trash_line"
             app:backgroundTint="@null"
-            app:tint="@color/text_secondary" />
+            app:tint="@color/md3_on_surface_variant" />
     </LinearLayout>
 </LinearLayout>

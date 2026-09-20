@@ -101,7 +101,7 @@ import kotlinx.coroutines.launch
 class MainActivity : AppCompatActivity() {
     private lateinit var assets: PetAssetRepository
     private lateinit var settings: PetSettings
-    private val focusSession = OverlayFocusSession()
+    private val focusSession = OverlayFocusSession.shared
 
     private var hasPromptedPermissions = false
     private var skipPermissionPromptOnce = false
@@ -158,12 +158,6 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             )
-        }
-
-        focusSession.onFocusStarted = { HabitRewardTracker.onFocusSessionStarted() }
-        focusSession.onFocusCompleted = {
-            HabitRewardTracker.onFocusSessionCompleted(this)
-            Toast.makeText(this, R.string.focus_complete, Toast.LENGTH_LONG).show()
         }
 
         setContent {
@@ -573,7 +567,8 @@ class MainActivity : AppCompatActivity() {
                                             sendServiceAction(PetService.ACTION_REFRESH_SETTINGS)
                                             petTick++
                                         },
-                                        tick = petTick
+                                        tick = petTick,
+                                        onOpenFlash = { openFlashNoteComposer() }
                                     )
                                 }
                             )
@@ -692,11 +687,6 @@ class MainActivity : AppCompatActivity() {
         if (pendingFocusModeStart && isBlockerServiceOperational()) {
             pendingFocusModeStart = false
         }
-    }
-
-    override fun onDestroy() {
-        focusSession.release()
-        super.onDestroy()
     }
 
     private fun startOverlayFocus(config: TimerConfig) {

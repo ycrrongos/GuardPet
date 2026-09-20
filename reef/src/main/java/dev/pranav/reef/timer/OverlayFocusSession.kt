@@ -48,8 +48,32 @@ class OverlayFocusSession {
     private var countUpRatio = 5
     private var simpleInitialMs = 25 * 60_000L
 
-    var onFocusStarted: (() -> Unit)? = null
-    var onFocusCompleted: (() -> Unit)? = null
+    private val focusStarted = linkedSetOf<() -> Unit>()
+    private val focusCompleted = linkedSetOf<() -> Unit>()
+
+    fun addOnFocusStarted(listener: () -> Unit) {
+        focusStarted += listener
+    }
+
+    fun removeOnFocusStarted(listener: () -> Unit) {
+        focusStarted -= listener
+    }
+
+    fun addOnFocusCompleted(listener: () -> Unit) {
+        focusCompleted += listener
+    }
+
+    fun removeOnFocusCompleted(listener: () -> Unit) {
+        focusCompleted -= listener
+    }
+
+    private fun notifyFocusStarted() {
+        focusStarted.toList().forEach { runCatching { it() } }
+    }
+
+    private fun notifyFocusCompleted() {
+        focusCompleted.toList().forEach { runCatching { it() } }
+    }
 
     private enum class Kind {
         Idle, Simple, PomodoroFocus, PomodoroShort, PomodoroLong, CountUp, CountUpBreak
@@ -125,7 +149,7 @@ class OverlayFocusSession {
             anchorElapsed = SystemClock.elapsedRealtime() + remainingMs
         }
         setBlocking(isFocusPhase())
-        onFocusStarted?.invoke()
+        notifyFocusStarted()
         publish()
         handler.post(tick)
         return true
@@ -205,11 +229,8 @@ class OverlayFocusSession {
         publish()
     }
 
-    fun release() {
-        cancel()
-        onFocusStarted = null
-        onFocusCompleted = null
-    }
+    /** 不再取消会话。计时挂在进程里，关页面不能清掉另一边正在走的番茄钟。 */
+    fun release() = Unit
 
     private fun onPhaseComplete() {
         handler.removeCallbacks(tick)
@@ -259,7 +280,7 @@ class OverlayFocusSession {
         resetIdle()
         clearSessionPrefs()
         runCatching { FocusStats.endSession(isCompleted = true) }
-        onFocusCompleted?.invoke()
+        notifyFocusCompleted()
         publish()
     }
 
@@ -376,5 +397,10 @@ class OverlayFocusSession {
                 countUpRatio = countUpRatio.toFloat()
             )
         }
+    }
+
+    companion object {
+        /** 应用内番茄钟和桌宠番茄钟共用这一份。 */
+        val shared = OverlayFocusSession()
     }
 }

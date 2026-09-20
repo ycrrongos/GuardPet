@@ -81,6 +81,22 @@
     <string name="interaction_title">陪它一会儿</string>
     <string name="todo_short">待办清单</string>
     <string name="settings_title">陪伴偏好</string>
+    <string name="settings_section_pet">桌宠</string>
+    <string name="settings_section_friend">好友</string>
+    <string name="settings_section_habit">习惯</string>
+    <string name="settings_section_ai">AI</string>
+    <string name="ai_api_title">AI 接口</string>
+    <string name="ai_api_subtitle">文本接口和千问 Key</string>
+    <string name="ai_api_hint">改完即保存，不用点「重新分析」。文本接口给习惯分析、日程、闪记和大爆炸；不填时这些功能走本地规则。</string>
+    <string name="ai_api_text_section">文本接口</string>
+    <string name="ai_api_deepseek_key">DeepSeek API Key</string>
+    <string name="ai_api_qwen_section">形象生成</string>
+    <string name="ai_api_qwen_hint">精细出图用。定制形象页选「精细」时也会读这一条。</string>
+    <string name="ai_api_save">保存</string>
+    <string name="ai_api_saved">已保存</string>
+    <string name="settings_section_system">权限与关于</string>
+    <string name="appearance_entry_subtitle">生成、上传或更换桌宠形象</string>
+    <string name="todo_entry_subtitle">待办清单、自由行走</string>
     <string name="settings_collapsed">调整</string>
     <string name="settings_expanded">收起</string>
     <string name="settings_expand">展开尺寸和速度设置</string>
@@ -327,7 +343,7 @@
     <string name="bigbang_ai_custom_hint">告诉 AI 怎么处理这段文字</string>
     <string name="bigbang_ai_custom_default">提炼要点并分条列出</string>
     <string name="bigbang_ai_run">整理</string>
-    <string name="bigbang_ai_need_key">请先在作息守护里填写 API Key</string>
+    <string name="bigbang_ai_need_key">请先在设置的「AI 接口」里填写 API Key</string>
     <string name="bigbang_ai_running">AI 整理中…</string>
     <string name="bigbang_ai_failed">AI 整理失败</string>
     <string name="bigbang_ai_done">已整理，可继续点选或再次 AI</string>
@@ -336,11 +352,12 @@
     <string name="focus_running_hint">再点时钟暂停 · 长按关闭</string>
     <string name="focus_paused_hint">再点时钟继续 · 长按关闭</string>
     <string name="reef_settings">专注配置</string>
-    <string name="habit_guard_entry">作息守护</string>
-    <string name="habit_guard_title">作息与习惯守护</string>
+    <string name="habit_guard_entry">习惯守护</string>
+    <string name="habit_guard_title">习惯守护</string>
+    <string name="habit_guard_subtitle">睡眠、工作时段与应用规则</string>
     <string name="habit_summary_empty">尚未生成策略。点「重新分析」会联网查询 Play/iTunes 公开分类（如美团=生活→娱乐）；可选填 API Key 补全商店未覆盖的应用。</string>
     <string name="habit_mood_hint">当前好感（心情）%1$d · 拦截会生气扣分，守约可加分</string>
-    <string name="habit_guard_enabled">启用作息守护</string>
+    <string name="habit_guard_enabled">启用习惯守护</string>
     <string name="habit_test_mode">测试模式（只提示不踢回桌面）</string>
     <string name="habit_sleep_window">睡眠时段</string>
     <string name="habit_sleep_start_btn">入睡 %1$s</string>

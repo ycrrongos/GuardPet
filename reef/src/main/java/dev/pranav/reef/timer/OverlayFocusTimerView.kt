@@ -26,20 +26,10 @@ import dev.pranav.reef.ui.ReefTheme
  * 对外是普通 [FrameLayout]，避免 :app 编译期依赖 Compose。
  */
 class OverlayFocusTimerView(context: Context) : FrameLayout(context) {
-    private val session = OverlayFocusSession()
+    private val session = OverlayFocusSession.shared
     private val composeView = ComposeView(context)
 
     var onRequestClose: (() -> Unit)? = null
-    var onFocusStarted: (() -> Unit)? = null
-        set(value) {
-            field = value
-            session.onFocusStarted = value
-        }
-    var onFocusCompleted: (() -> Unit)? = null
-        set(value) {
-            field = value
-            session.onFocusCompleted = value
-        }
     var onStartFailed: (() -> Unit)? = null
 
     init {
@@ -74,10 +64,7 @@ class OverlayFocusTimerView(context: Context) : FrameLayout(context) {
     }
 
     fun release() {
-        session.release()
         onRequestClose = null
-        onFocusStarted = null
-        onFocusCompleted = null
         onStartFailed = null
         composeView.disposeComposition()
     }

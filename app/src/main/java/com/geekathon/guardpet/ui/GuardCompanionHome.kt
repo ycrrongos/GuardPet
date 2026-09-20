@@ -1,5 +1,6 @@
 package com.geekathon.guardpet.ui
 
+import android.content.Intent
 import android.Manifest
 import android.content.pm.PackageManager
 import android.provider.Settings
@@ -30,7 +31,11 @@ import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Groups
+import androidx.compose.material.icons.rounded.Checklist
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Key
 import androidx.compose.material.icons.rounded.Nightlight
+import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Restaurant
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -81,6 +86,9 @@ import com.geekathon.guardpet.FlashNoteColor
 import com.geekathon.guardpet.FlashNotePlayer
 import com.geekathon.guardpet.FlashNoteStore
 import com.geekathon.guardpet.FocusLauncher
+import com.geekathon.guardpet.AiApiActivity
+import com.geekathon.guardpet.HabitGuardianActivity
+import com.geekathon.guardpet.PetPanelActivity
 import com.geekathon.guardpet.PetAction
 import com.geekathon.guardpet.PetAssetRepository
 import com.geekathon.guardpet.PetCanvas
@@ -166,7 +174,8 @@ fun GuardHomeScreen(
             GuardHomeToolRows(
                 onOpenHabit = onOpenHabit,
                 onOpenFlashComposer = onOpenFlashComposer,
-                onOpenFriends = { FocusLauncher.openFriends(context) }
+                onOpenFriends = { FocusLauncher.openFriends(context) },
+                onOpenAppearance = { FocusLauncher.openAppearance(context) }
             )
             FlashNotesCard()
             Spacer(Modifier.height(24.dp))
@@ -356,12 +365,13 @@ private fun MiniStat(label: String, value: Int) {
     }
 }
 
-/** 首页功能入口：贴合的 MD3 分组行（作息 + 闪记）。 */
+/** 首页功能入口。闪记行只负责打开，不改闪记界面。 */
 @Composable
 fun GuardHomeToolRows(
     onOpenHabit: () -> Unit,
     onOpenFlashComposer: () -> Unit,
-    onOpenFriends: () -> Unit
+    onOpenFriends: () -> Unit,
+    onOpenAppearance: () -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         HomeNavigationRow(
@@ -369,15 +379,15 @@ fun GuardHomeToolRows(
             subtitle = stringResource(R.string.friend_entry_subtitle),
             icon = Icons.Rounded.Groups,
             index = 0,
-            totalItems = 3,
+            totalItems = 4,
             onClick = onOpenFriends
         )
         HomeNavigationRow(
             title = stringResource(R.string.habit_guard_entry),
-            subtitle = stringResource(R.string.habit_guard_title),
+            subtitle = stringResource(R.string.habit_guard_subtitle),
             icon = Icons.Rounded.Nightlight,
             index = 1,
-            totalItems = 3,
+            totalItems = 4,
             onClick = onOpenHabit
         )
         HomeNavigationRow(
@@ -385,8 +395,16 @@ fun GuardHomeToolRows(
             subtitle = stringResource(R.string.flash_note_write_overlay),
             icon = Icons.AutoMirrored.Rounded.Notes,
             index = 2,
-            totalItems = 3,
+            totalItems = 4,
             onClick = onOpenFlashComposer
+        )
+        HomeNavigationRow(
+            title = stringResource(R.string.appearance_title),
+            subtitle = stringResource(R.string.appearance_entry_subtitle),
+            icon = Icons.Rounded.Palette,
+            index = 3,
+            totalItems = 4,
+            onClick = onOpenAppearance
         )
     }
 }
@@ -395,47 +413,110 @@ fun GuardHomeToolRows(
 fun GuardSettingsFooter(
     settings: PetSettings,
     onRefreshSettings: () -> Unit,
-    tick: Int
+    tick: Int,
+    onOpenFlash: () -> Unit
 ) {
     @Suppress("UNUSED_VARIABLE")
     val refresh = tick
+    val context = LocalContext.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 8.dp, bottom = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(
-            text = stringResource(R.string.settings_title),
-            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-            modifier = Modifier.padding(start = 4.dp)
-        )
-        val context = LocalContext.current
-        Button(
-            onClick = { FocusLauncher.openFriends(context) },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Text(stringResource(R.string.friend_entry))
-        }
-        OutlinedButton(
-            onClick = { FocusLauncher.openAppearance(context) },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Text(stringResource(R.string.appearance_title))
+        SettingsSection(stringResource(R.string.settings_section_pet)) {
+            HomeNavigationRow(
+                title = stringResource(R.string.appearance_title),
+                subtitle = stringResource(R.string.appearance_entry_subtitle),
+                icon = Icons.Rounded.Palette,
+                index = 0,
+                totalItems = 2,
+                onClick = { FocusLauncher.openAppearance(context) }
+            )
+            HomeNavigationRow(
+                title = stringResource(R.string.todo_short),
+                subtitle = stringResource(R.string.todo_entry_subtitle),
+                icon = Icons.Rounded.Checklist,
+                index = 1,
+                totalItems = 2,
+                onClick = {
+                    context.startActivity(Intent(context, PetPanelActivity::class.java))
+                }
+            )
         }
         CompanionPrefsCard(settings = settings, onRefreshSettings = onRefreshSettings)
         GestureShortcutsCard(settings = settings)
-        PermissionsCard()
-        TextButton(onClick = { FocusLauncher.openAbout(context) }) {
-            Text(
-                text = stringResource(R.string.focus_attribution),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+
+        SettingsSection(stringResource(R.string.settings_section_friend)) {
+            HomeNavigationRow(
+                title = stringResource(R.string.friend_entry),
+                subtitle = stringResource(R.string.friend_entry_subtitle),
+                icon = Icons.Rounded.Groups,
+                index = 0,
+                totalItems = 1,
+                onClick = { FocusLauncher.openFriends(context) }
             )
         }
+
+        SettingsSection(stringResource(R.string.settings_section_habit)) {
+            HomeNavigationRow(
+                title = stringResource(R.string.habit_guard_entry),
+                subtitle = stringResource(R.string.habit_guard_subtitle),
+                icon = Icons.Rounded.Nightlight,
+                index = 0,
+                totalItems = 1,
+                onClick = {
+                    context.startActivity(Intent(context, HabitGuardianActivity::class.java))
+                }
+            )
+        }
+
+        SettingsSection(stringResource(R.string.settings_section_ai)) {
+            HomeNavigationRow(
+                title = stringResource(R.string.ai_api_title),
+                subtitle = stringResource(R.string.ai_api_subtitle),
+                icon = Icons.Rounded.Key,
+                index = 0,
+                totalItems = 1,
+                onClick = {
+                    context.startActivity(Intent(context, AiApiActivity::class.java))
+                }
+            )
+        }
+
+        SettingsSection(stringResource(R.string.flash_note)) {
+            HomeNavigationRow(
+                title = stringResource(R.string.flash_note),
+                subtitle = stringResource(R.string.flash_note_write_overlay),
+                icon = Icons.AutoMirrored.Rounded.Notes,
+                index = 0,
+                totalItems = 1,
+                onClick = onOpenFlash
+            )
+        }
+
+        SettingsSection(stringResource(R.string.settings_section_system)) {
+            PermissionsCard()
+            TextButton(onClick = { FocusLauncher.openAbout(context) }) {
+                Icon(Icons.Rounded.Info, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.focus_attribution))
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+            modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
+        )
+        content()
     }
 }
 

@@ -5,9 +5,7 @@ import android.content.Intent
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
-import android.util.TypedValue
 import android.view.Gravity
-import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
@@ -48,19 +46,16 @@ class FocusTimerActivity : AppCompatActivity() {
 
         val root = FrameLayout(this).apply {
             setBackgroundColor(Color.parseColor("#99000000"))
-            setOnClickListener { /* absorb outside taps */ }
+            setOnClickListener { finish() }
         }
 
         val focusView = OverlayFocusTimerView(this).apply {
-            onRequestClose = { finishSafely() }
+            onRequestClose = { finish() }
             onStartFailed = {
                 Toast.makeText(this@FocusTimerActivity, R.string.focus_not_ready, Toast.LENGTH_SHORT).show()
             }
-            onFocusStarted = { HabitRewardTracker.onFocusSessionStarted() }
-            onFocusCompleted = {
-                HabitRewardTracker.onFocusSessionCompleted(this@FocusTimerActivity)
-                Toast.makeText(this@FocusTimerActivity, R.string.focus_complete, Toast.LENGTH_LONG).show()
-            }
+            isClickable = true
+            setOnClickListener { }
             background = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
                 cornerRadius = 16f * density
@@ -82,20 +77,6 @@ class FocusTimerActivity : AppCompatActivity() {
             FrameLayout.LayoutParams(frameW, frameH, Gravity.CENTER)
         )
 
-        val closeBtn = makeBarButton(getString(R.string.bigbang_crop_cancel), filled = false) {
-            finishSafely()
-        }
-        root.addView(
-            closeBtn,
-            FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.WRAP_CONTENT,
-                FrameLayout.LayoutParams.WRAP_CONTENT,
-                Gravity.BOTTOM or Gravity.START
-            ).apply {
-                setMargins((16 * density).toInt(), 0, 0, (28 * density).toInt())
-            }
-        )
-
         ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(0, 0, 0, bars.bottom)
@@ -108,15 +89,10 @@ class FocusTimerActivity : AppCompatActivity() {
             this,
             object : OnBackPressedCallback(true) {
                 override fun handleOnBackPressed() {
-                    finishSafely()
+                    finish()
                 }
             }
         )
-    }
-
-    private fun finishSafely() {
-        panel?.cancelSession()
-        finish()
     }
 
     override fun onDestroy() {
@@ -126,35 +102,6 @@ class FocusTimerActivity : AppCompatActivity() {
             startService(Intent(this, PetService::class.java).setAction(PetService.ACTION_SHOW_PET))
         }
         super.onDestroy()
-    }
-
-    private fun makeBarButton(label: String, filled: Boolean, onClick: () -> Unit): Button {
-        val density = resources.displayMetrics.density
-        val primary = ContextCompat.getColor(this, R.color.brand_primary)
-        val bg = GradientDrawable().apply {
-            cornerRadius = 22f * density
-            if (filled) {
-                setColor(primary)
-            } else {
-                setColor(Color.WHITE)
-                setStroke((1.5f * density).toInt(), primary)
-            }
-        }
-        return Button(this).apply {
-            text = label
-            setTextColor(if (filled) Color.WHITE else primary)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
-            background = bg
-            isAllCaps = false
-            minHeight = (44 * density).toInt()
-            setPadding(
-                (18 * density).toInt(),
-                (10 * density).toInt(),
-                (18 * density).toInt(),
-                (10 * density).toInt()
-            )
-            setOnClickListener { onClick() }
-        }
     }
 
     companion object {

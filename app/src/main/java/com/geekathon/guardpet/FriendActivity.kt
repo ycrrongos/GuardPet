@@ -179,6 +179,13 @@ class FriendActivity : AppCompatActivity() {
                             onAppearanceChanged = { avatarTick++ }
                         )
 
+                        OutlinedButton(
+                            onClick = { startActivity(Intent(this@FriendActivity, HabitGuardianActivity::class.java)) },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(stringResource(R.string.habit_guard_entry))
+                        }
+
                         OutlinedTextField(
                             value = host,
                             onValueChange = { host = it },

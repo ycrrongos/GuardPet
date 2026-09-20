@@ -198,7 +198,7 @@ class PetService : Service() {
         tapHandler.removeCallbacksAndMessages(null)
         panelOverlay?.close()
         panelOverlay = null
-        menuOverlay?.close()
+        menuOverlay?.closeNow()
         menuOverlay = null
         sleepLockOverlay?.close()
         sleepLockOverlay = null

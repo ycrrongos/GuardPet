@@ -214,7 +214,7 @@
     <string name="blocked_by_routine">“%1$s”已被生效中的专注计划屏蔽</string>
     <string name="reached_limit">“%1$s”已达到使用限额</string>
     <string name="distraction_blocked">屏蔽干扰</string>
-    <string name="habit_guard_blocked">作息守护</string>
+    <string name="habit_guard_blocked">习惯守护</string>
     <string name="you_were_using">您刚才正在使用 %1$s</string>
     <string name="blocker_channel_name">内容屏蔽器</string>
     <string name="blocker_channel_description">显示屏幕使用时间提醒以及应用屏蔽通知。</string>

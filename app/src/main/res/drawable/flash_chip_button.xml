@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 胶囊：左右半圆、上下直线。半径大于高度一半即可，不要用 oval（拉宽会变成尖椭圆）。 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#14202124" />
+    <corners android:radius="1000dp" />
+</shape>

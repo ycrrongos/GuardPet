@@ -48,7 +48,7 @@
             android:name=".PetPanelActivity"
             android:exported="false"
             android:excludeFromRecents="true"
-            android:theme="@style/Theme.DesktopPet.Panel" />
+            android:theme="@style/Theme.DesktopPet" />
 
         <activity
             android:name=".BigBangActivity"
@@ -57,7 +57,8 @@
             android:launchMode="singleInstance"
             android:noHistory="true"
             android:taskAffinity="${applicationId}.bigbang"
-            android:theme="@style/Theme.DesktopPet.BigBang" />
+            android:theme="@style/Theme.DesktopPet.BigBang"
+            android:windowSoftInputMode="adjustResize" />
 
         <activity
             android:name=".FocusTimerActivity"
@@ -147,6 +148,12 @@
             android:name=".PetAppearanceActivity"
             android:exported="false"
             android:label="@string/appearance_title"
+            android:theme="@style/Theme.DesktopPet" />
+
+        <activity
+            android:name=".AiApiActivity"
+            android:exported="false"
+            android:label="@string/ai_api_title"
             android:theme="@style/Theme.DesktopPet" />
 
         <activity

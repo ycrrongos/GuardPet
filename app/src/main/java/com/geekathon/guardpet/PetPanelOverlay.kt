@@ -19,7 +19,7 @@ class PetPanelOverlay(
     private val anchorHeight: Int
 ) {
     private val settings = PetSettings(service)
-    private val themedContext = ContextThemeWrapper(service, R.style.Theme_DesktopPet)
+    private val themedContext = ContextThemeWrapper(service, R.style.Theme_DesktopPet_Overlay)
     private val binding = ActivityPetPanelBinding.inflate(LayoutInflater.from(themedContext))
     private var attached = false
     private lateinit var params: WindowManager.LayoutParams
@@ -27,10 +27,10 @@ class PetPanelOverlay(
     fun show() {
         if (attached) return
         val metrics = service.resources.displayMetrics
-        val width = (metrics.widthPixels * 0.92f).toInt().coerceAtLeast(280)
-        val height = (metrics.heightPixels * 0.36f).toInt()
-            .coerceIn((240 * metrics.density).toInt(), (360 * metrics.density).toInt())
-            .coerceAtMost((metrics.heightPixels * 0.9f).toInt())
+        val width = (metrics.widthPixels * 0.69f).toInt().coerceAtLeast((210 * metrics.density).toInt())
+        val height = (metrics.heightPixels * 0.27f).toInt()
+            .coerceIn((180 * metrics.density).toInt(), (270 * metrics.density).toInt())
+            .coerceAtMost((metrics.heightPixels * 0.72f).toInt())
         params = WindowManager.LayoutParams(
             width,
             height,

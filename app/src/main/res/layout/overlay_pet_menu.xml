@@ -1,89 +1,119 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="wrap_content"
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/menuCard"
+    android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@drawable/panel_background"
-    android:orientation="vertical"
-    android:padding="8dp">
+    app:cardBackgroundColor="?attr/colorSurface"
+    app:cardCornerRadius="24dp"
+    app:cardElevation="6dp"
+    app:strokeColor="?attr/colorOutlineVariant"
+    app:strokeWidth="1dp">
 
     <LinearLayout
+        android:id="@+id/menuColumn"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
+        android:clipChildren="false"
+        android:orientation="vertical"
+        android:paddingStart="6dp"
+        android:paddingTop="2dp"
+        android:paddingEnd="6dp"
+        android:paddingBottom="6dp">
 
-        <TextView
-            android:layout_width="0dp"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:paddingStart="4dp"
-            android:text="@string/quick_tools"
-            android:textColor="@color/text_primary"
-            android:textSize="13sp"
-            android:textStyle="bold" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
-        <TextView
-            android:id="@+id/closeMenuButton"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:contentDescription="@string/close_menu"
-            android:gravity="center"
-            android:text="×"
-            android:textColor="@color/text_primary"
-            android:textSize="20sp" />
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:paddingStart="8dp"
+                android:text="@string/quick_tools"
+                android:textAppearance="?attr/textAppearanceTitleSmall"
+                android:textColor="?attr/colorOnSurface" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/closeMenuButton"
+                style="@style/Widget.Material3.Button.IconButton"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:contentDescription="@string/close_menu"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                app:icon="@drawable/ic_close_line"
+                app:iconGravity="textStart"
+                app:iconPadding="0dp"
+                app:iconTint="?attr/colorOnSurfaceVariant" />
+        </LinearLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/extractTextButton"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="match_parent"
+            android:layout_height="30dp"
+            android:layout_marginTop="2dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="@string/extract_text"
+            android:textSize="12sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/flashNoteButton"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="match_parent"
+            android:layout_height="30dp"
+            android:layout_marginTop="4dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="@string/flash_note_capture"
+            android:textSize="12sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/flashNoteListButton"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="match_parent"
+            android:layout_height="30dp"
+            android:layout_marginTop="4dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="@string/flash_note_list"
+            android:textSize="12sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/scheduleButton"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="match_parent"
+            android:layout_height="30dp"
+            android:layout_marginTop="4dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="@string/schedule_page_title"
+            android:textSize="12sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/focusButton"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="match_parent"
+            android:layout_height="30dp"
+            android:layout_marginTop="4dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="@string/focus_timer"
+            android:textSize="12sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/panelButton"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="match_parent"
+            android:layout_height="30dp"
+            android:layout_marginTop="4dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="@string/control_panel"
+            android:textSize="12sp" />
     </LinearLayout>
-
-    <Button
-        android:id="@+id/extractTextButton"
-        android:layout_width="match_parent"
-        android:layout_height="40dp"
-        android:layout_marginTop="4dp"
-        android:minWidth="0dp"
-        android:text="@string/extract_text"
-        android:textSize="13sp" />
-
-    <Button
-        android:id="@+id/flashNoteButton"
-        android:layout_width="match_parent"
-        android:layout_height="40dp"
-        android:layout_marginTop="4dp"
-        android:minWidth="0dp"
-        android:text="@string/flash_note_capture"
-        android:textSize="13sp" />
-
-    <Button
-        android:id="@+id/flashNoteListButton"
-        android:layout_width="match_parent"
-        android:layout_height="40dp"
-        android:layout_marginTop="4dp"
-        android:minWidth="0dp"
-        android:text="@string/flash_note_list"
-        android:textSize="13sp" />
-
-    <Button
-        android:id="@+id/scheduleButton"
-        android:layout_width="match_parent"
-        android:layout_height="40dp"
-        android:layout_marginTop="4dp"
-        android:minWidth="0dp"
-        android:text="@string/schedule_page_title"
-        android:textSize="13sp" />
-
-    <Button
-        android:id="@+id/focusButton"
-        android:layout_width="match_parent"
-        android:layout_height="40dp"
-        android:layout_marginTop="4dp"
-        android:minWidth="0dp"
-        android:text="@string/focus_timer"
-        android:textSize="13sp" />
-
-    <Button
-        android:id="@+id/panelButton"
-        android:layout_width="match_parent"
-        android:layout_height="40dp"
-        android:layout_marginTop="4dp"
-        android:minWidth="0dp"
-        android:text="@string/control_panel"
-        android:textSize="13sp" />
-</LinearLayout>
+</com.google.android.material.card.MaterialCardView>

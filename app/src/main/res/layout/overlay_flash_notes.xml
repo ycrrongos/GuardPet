@@ -116,35 +116,43 @@
             <TextView
                 android:id="@+id/composerRecordButton"
                 android:layout_width="0dp"
-                android:layout_height="36dp"
+                android:layout_height="40dp"
                 android:layout_marginEnd="6dp"
                 android:layout_weight="1"
-                android:background="@drawable/flash_play_circle"
+                android:background="@drawable/flash_chip_button"
                 android:gravity="center"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
                 android:text="@string/flash_note_record"
                 android:textColor="@color/text_primary"
-                android:textSize="13sp" />
+                android:textSize="14sp" />
 
             <TextView
                 android:id="@+id/composerDictateButton"
                 android:layout_width="0dp"
-                android:layout_height="36dp"
+                android:layout_height="40dp"
                 android:layout_marginEnd="6dp"
                 android:layout_weight="1"
+                android:background="@drawable/flash_chip_button"
                 android:gravity="center"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
                 android:text="@string/voice_input"
                 android:textColor="@color/text_primary"
-                android:textSize="13sp" />
+                android:textSize="14sp" />
 
             <TextView
                 android:id="@+id/composerSaveButton"
                 android:layout_width="0dp"
-                android:layout_height="36dp"
+                android:layout_height="40dp"
                 android:layout_weight="1"
+                android:background="@drawable/flash_chip_button"
                 android:gravity="center"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
                 android:text="@string/save_note"
                 android:textColor="@color/brand_primary"
-                android:textSize="13sp"
+                android:textSize="14sp"
                 android:textStyle="bold" />
         </LinearLayout>
     </LinearLayout>

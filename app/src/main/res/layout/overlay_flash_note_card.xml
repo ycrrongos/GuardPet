@@ -101,15 +101,13 @@
         <LinearLayout
             android:id="@+id/playbackRow"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="40dp"
             android:layout_marginTop="12dp"
-            android:background="@drawable/flash_play_circle"
+            android:background="@drawable/flash_chip_button_on_card"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingStart="10dp"
-            android:paddingTop="6dp"
-            android:paddingEnd="14dp"
-            android:paddingBottom="6dp"
+            android:paddingStart="14dp"
+            android:paddingEnd="16dp"
             android:clickable="true"
             android:focusable="true"
             android:visibility="gone">
@@ -129,7 +127,7 @@
                 android:layout_marginStart="8dp"
                 android:text="@string/flash_note_replay"
                 android:textColor="#FFFFFFFF"
-                android:textSize="13sp" />
+                android:textSize="14sp" />
         </LinearLayout>
 
         <LinearLayout
@@ -152,30 +150,28 @@
             <TextView
                 android:id="@+id/convertToScheduleButton"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="@drawable/flash_play_circle"
-                android:paddingStart="10dp"
-                android:paddingTop="6dp"
-                android:paddingEnd="10dp"
-                android:paddingBottom="6dp"
+                android:layout_height="40dp"
+                android:background="@drawable/flash_chip_button_on_card"
+                android:gravity="center"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
                 android:text="@string/flash_convert_to_schedule"
                 android:textColor="#FFFFFFFF"
-                android:textSize="12sp"
+                android:textSize="14sp"
                 android:visibility="gone" />
 
             <TextView
                 android:id="@+id/convertToTodoButton"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_height="40dp"
                 android:layout_marginStart="8dp"
-                android:background="@drawable/flash_play_circle"
-                android:paddingStart="10dp"
-                android:paddingTop="6dp"
-                android:paddingEnd="10dp"
-                android:paddingBottom="6dp"
+                android:background="@drawable/flash_chip_button_on_card"
+                android:gravity="center"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
                 android:text="@string/flash_convert_to_todo"
                 android:textColor="#FFFFFFFF"
-                android:textSize="12sp"
+                android:textSize="14sp"
                 android:visibility="gone" />
         </LinearLayout>
 

@@ -23,8 +23,8 @@ android {
         applicationId = "com.geekathon.guardpet"
         minSdk = 26
         targetSdk = 36
-        versionCode = 40
-        versionName = "1.0.11"
+        versionCode = 41
+        versionName = "1.1.0"
         ndk {
             // sherpa-onnx AAR ships four ABIs (~120MB); phone is arm64
             abiFilters += listOf("arm64-v8a")
