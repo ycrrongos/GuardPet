@@ -157,6 +157,12 @@
             android:theme="@style/Theme.DesktopPet" />
 
         <activity
+            android:name=".BigBangShortcutsActivity"
+            android:exported="false"
+            android:label="@string/bigbang_shortcuts_title"
+            android:theme="@style/Theme.DesktopPet" />
+
+        <activity
             android:name=".HabitGuardianActivity"
             android:exported="true"
             android:label="@string/habit_guard_title">

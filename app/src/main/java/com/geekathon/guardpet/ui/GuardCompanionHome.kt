@@ -34,6 +34,7 @@ import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.Checklist
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Key
+import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.Nightlight
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Restaurant
@@ -87,6 +88,7 @@ import com.geekathon.guardpet.FlashNotePlayer
 import com.geekathon.guardpet.FlashNoteStore
 import com.geekathon.guardpet.FocusLauncher
 import com.geekathon.guardpet.AiApiActivity
+import com.geekathon.guardpet.BigBangShortcutsActivity
 import com.geekathon.guardpet.HabitGuardianActivity
 import com.geekathon.guardpet.PetPanelActivity
 import com.geekathon.guardpet.PetAction
@@ -478,9 +480,19 @@ fun GuardSettingsFooter(
                 subtitle = stringResource(R.string.ai_api_subtitle),
                 icon = Icons.Rounded.Key,
                 index = 0,
-                totalItems = 1,
+                totalItems = 2,
                 onClick = {
                     context.startActivity(Intent(context, AiApiActivity::class.java))
+                }
+            )
+            HomeNavigationRow(
+                title = stringResource(R.string.bigbang_shortcuts_title),
+                subtitle = stringResource(R.string.bigbang_shortcuts_subtitle),
+                icon = Icons.Rounded.Tune,
+                index = 1,
+                totalItems = 2,
+                onClick = {
+                    context.startActivity(Intent(context, BigBangShortcutsActivity::class.java))
                 }
             )
         }

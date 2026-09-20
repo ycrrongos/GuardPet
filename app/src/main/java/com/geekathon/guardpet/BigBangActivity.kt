@@ -31,6 +31,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
@@ -66,6 +67,7 @@ import java.util.concurrent.Executors
 
 class BigBangActivity : AppCompatActivity() {
     var onRefreshTokens: (() -> Unit)? = null
+    var onShortcutsRefresh: (() -> Unit)? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -95,6 +97,11 @@ class BigBangActivity : AppCompatActivity() {
         onRefreshTokens?.invoke()
     }
 
+    override fun onResume() {
+        super.onResume()
+        onShortcutsRefresh?.invoke()
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         if (PetService.isRunning) {
@@ -122,6 +129,7 @@ private fun BigBangScreen(activity: BigBangActivity) {
     var loading by remember { mutableStateOf(false) }
     var customOpen by remember { mutableStateOf(false) }
     var customText by remember { mutableStateOf(activity.getString(R.string.bigbang_ai_custom_default)) }
+    var shortcuts by remember { mutableStateOf(BigBangShortcutStore.load(activity)) }
     val originalTokens = remember { tokens.toList() }
     val applied = remember { intArrayOf(-1) }
     val flowHolder = remember { arrayOfNulls<TokenFlowView>(1) }
@@ -142,8 +150,12 @@ private fun BigBangScreen(activity: BigBangActivity) {
             animateTokens = true
             generation++
         }
+        activity.onShortcutsRefresh = {
+            shortcuts = BigBangShortcutStore.load(activity)
+        }
         onDispose {
             activity.onRefreshTokens = null
+            activity.onShortcutsRefresh = null
             io.shutdownNow()
         }
     }
@@ -153,7 +165,8 @@ private fun BigBangScreen(activity: BigBangActivity) {
     LaunchedEffect(Unit) {
         if (activity.intent?.getBooleanExtra(BigBangActivity.EXTRA_AUTO_AI_NOTE, false) == true) {
             kotlinx.coroutines.delay(500L)
-            runAi(activity, io, tokens, flowHolder, loading) { next, showRestore, busy ->
+            val preset = shortcuts.firstOrNull { it.id == "note" } ?: shortcuts.firstOrNull()
+            runAi(activity, io, tokens, flowHolder, loading, prompt = preset?.prompt) { next, showRestore, busy ->
                 loading = busy
                 if (next != null) {
                     TextCaptureHolder.tokens = next
@@ -177,6 +190,14 @@ private fun BigBangScreen(activity: BigBangActivity) {
     fun startAi(action: BigBangAiAction, hint: String = "") {
         if (loading) return
         runAi(activity, io, tokens, flowHolder, false, action, hint) { next, showRestore, busy ->
+            loading = busy
+            if (next != null) applyTokens(next, showRestore)
+        }
+    }
+
+    fun startPrompt(prompt: String) {
+        if (loading) return
+        runAi(activity, io, tokens, flowHolder, false, prompt = prompt) { next, showRestore, busy ->
             loading = busy
             if (next != null) applyTokens(next, showRestore)
         }
@@ -244,26 +265,30 @@ private fun BigBangScreen(activity: BigBangActivity) {
                         .padding(start = 12.dp, end = 12.dp, top = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    AssistChip(
-                        onClick = { startAi(BigBangAiAction.NOTE) },
-                        enabled = !loading,
-                        label = { Text(stringResource(R.string.bigbang_ai_note)) }
-                    )
-                    AssistChip(
-                        onClick = { startAi(BigBangAiAction.CLEAN) },
-                        enabled = !loading,
-                        label = { Text(stringResource(R.string.bigbang_ai_clean)) }
-                    )
-                    AssistChip(
-                        onClick = { startAi(BigBangAiAction.TRANSLATE) },
-                        enabled = !loading,
-                        label = { Text(stringResource(R.string.bigbang_ai_translate)) }
-                    )
+                    shortcuts.filter { it.title.isNotBlank() }.forEach { item ->
+                        AssistChip(
+                            onClick = { startPrompt(item.prompt) },
+                            enabled = !loading,
+                            label = { Text(item.title) }
+                        )
+                    }
                     AssistChip(
                         onClick = { customOpen = true },
                         enabled = !loading,
                         label = { Text(stringResource(R.string.bigbang_ai_custom)) }
                     )
+                    IconButton(
+                        onClick = {
+                            activity.startActivity(
+                                Intent(activity, BigBangShortcutsActivity::class.java)
+                            )
+                        }
+                    ) {
+                        Icon(
+                            Icons.Rounded.Settings,
+                            contentDescription = stringResource(R.string.bigbang_shortcuts_title)
+                        )
+                    }
                 }
                 if (loading) {
                     LinearProgressIndicator(
@@ -405,6 +430,7 @@ private fun runAi(
     alreadyLoading: Boolean,
     action: BigBangAiAction = BigBangAiAction.NOTE,
     customHint: String = "",
+    prompt: String? = null,
     onUpdate: (next: List<String>?, showRestore: Boolean, loading: Boolean) -> Unit
 ) {
     if (alreadyLoading) return
@@ -422,7 +448,8 @@ private fun runAi(
     Toast.makeText(activity, R.string.bigbang_ai_running, Toast.LENGTH_SHORT).show()
     io.execute {
         val result = runCatching {
-            BigBangAi.run(action, source, customHint)
+            if (prompt != null) BigBangAi.runPrompt(prompt, source)
+            else BigBangAi.run(action, source, customHint)
         }.getOrElse {
             HabitLlmResult(ok = false, error = it.message ?: "AI 异常")
         }
